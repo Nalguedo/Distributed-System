@@ -43,25 +43,22 @@ public class PlacesServer {
                             try {
                                 //receive the message and print it on the screen
                                 multicastSocket.receive(reply);
-                                String received = reply.getData().toString();
+                                String received = new String(reply.getData());
                                 System.out.println("Reply: " + received);
 
-                                if(received.equals(message)){
-                                    break;
-                                }
-
+                                //TODO: manage failures
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
                         }
-                        try {
+                        /*try {
                             //leave the group and close the socket
                             multicastSocket.leaveGroup(address);
                             multicastSocket.close();
                         }
                         catch (IOException e){
                             e.printStackTrace();
-                        }
+                        }*/
                     }
                 });
                 t.start();
