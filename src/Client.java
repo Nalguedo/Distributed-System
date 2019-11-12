@@ -1,6 +1,7 @@
 
 public class Client {
     public static void main (String[] args) throws InterruptedException {
+        //Run 3 instances of the place manager
         Thread t = (new Thread() {
             public void run() {
                 try {
