@@ -55,6 +55,10 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
             //create a new thread to listen to other server's messages
             Thread threadListen = (new Thread() {
                 public void run() {
+
+                    //Hash that will receive the decompressed message Type : Value
+                    HashMap<String,String> messages = new HashMap<>();
+
                     while(true) {
                         byte[] buffer = new byte[1000];
                         //create a packet to receive the message
@@ -64,8 +68,10 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                             multicastSocket.receive(reply);
                             String received = new String(reply.getData());
 
-                            HashMap<String,String> messages = new HashMap<>();
+                            //Decompress message
+                            messages = messageDecompressor(received);
 
+                            //For each type in the Hash, evaluate and execute the diferent actions
                             for (String type : messages.keySet()) {
 
                                 switch(message) {
@@ -120,7 +126,11 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                 e.printStackTrace();
                             }
 
+                            //Send Message with Type "Lider" and ID, uses an empty String as input
                             msg = messageCompressor(msg,"Lider",placeMngrID);
+
+                            //If you want to send messages with another type and value, it as simple as -> messageCompressor(existingMessage,"newType",Value)
+
                             //msg = String.valueOf(placeMngrID);
                             msgDatagram = new DatagramPacket(msg.getBytes(), msg.getBytes().length, _addr, _port);
                             try {
@@ -211,23 +221,26 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         return hexString.toString();
     }
 
+    //Compress diferent messages in one string, receive existing message (can be empty), the Type of Message and the Value
+    //Message Compressed looks like this "type:value&type:value"
     private String messageCompressor(String existingMessage, String param, String value){
         if (existingMessage.isEmpty())
         {
-            existingMessage = param + ":" + value;
+            existingMessage = param + ":" + value; //param:value
         }else{
-            existingMessage = existingMessage + "&" + param + ":" + value;
+            existingMessage = existingMessage + "&" + param + ":" + value; //existingMessage&param:value
         }
         return existingMessage;
     }
 
+    //Decompress the String with the diferent types and values into a Hash<String,String>
     private HashMap<String,String> messageDecompressor(String message){
-        String[] parts = message.split("&");
+        String[] parts = message.split("&"); //First Split the String in a String[] (array) with the diferent messages "type:value"
         HashMap<String,String> decompressedMessage = new HashMap<>();
         String[] help;
         for (int i = 0; i < parts.length; i++){
-            help = parts[i].split(":");
-            decompressedMessage.put(help[0],help[1]);
+            help = parts[i].split(":"); //Split the message in Type and Value
+            decompressedMessage.put(help[0],help[1]); //Add the type as key and the Value as value to the HashMap
         }
         return decompressedMessage;
     }
