@@ -63,12 +63,31 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                             //receive the message and print it on console
                             multicastSocket.receive(reply);
                             String received = new String(reply.getData());
-                            //Store received Placemanager ID
-                            sysViewAux.put(received, false);
+
+                            HashMap<String,String> messages = new HashMap<>();
+
+                            for (String type : messages.keySet()) {
+
+                                switch(message) {
+                                    case "KeepAlive":
+                                        // code block
+                                        break;
+                                    case "Lider":
+                                        //Store received Placemanager ID
+                                        sysViewAux.put(messages.get(type), false);
+                                        break;
+                                    case "Sync":
+                                        break;
+                                    default:
+                                        // code block
+                                }
+                            }
 
                             System.out.println("Reply: " + received);
 
                             //TODO: manage failures
+                            //TODO: Receive Message Only From Group
+                            //TODO: LOG
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -91,7 +110,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                 Thread threadSend = (new Thread() {
                     public void run() {
                         int i = 0;
-                        String msg;
+                        String msg = "";
                         DatagramPacket msgDatagram;
                         while (true) {
                             try {
@@ -100,7 +119,9 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
-                            msg = String.valueOf(placeMngrID);
+
+                            msg = messageCompressor(msg,"Lider",placeMngrID);
+                            //msg = String.valueOf(placeMngrID);
                             msgDatagram = new DatagramPacket(msg.getBytes(), msg.getBytes().length, _addr, _port);
                             try {
                                 //send the datagram packet
@@ -189,4 +210,26 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
 
         return hexString.toString();
     }
+
+    private String messageCompressor(String existingMessage, String param, String value){
+        if (existingMessage.isEmpty())
+        {
+            existingMessage = param + ":" + value;
+        }else{
+            existingMessage = existingMessage + "&" + param + ":" + value;
+        }
+        return existingMessage;
+    }
+
+    private HashMap<String,String> messageDecompressor(String message){
+        String[] parts = message.split("&");
+        HashMap<String,String> decompressedMessage = new HashMap<>();
+        String[] help;
+        for (int i = 0; i < parts.length; i++){
+            help = parts[i].split(":");
+            decompressedMessage.put(help[0],help[1]);
+        }
+        return decompressedMessage;
+    }
+
 }
