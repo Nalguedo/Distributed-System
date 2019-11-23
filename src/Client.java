@@ -15,6 +15,34 @@ public class Client {
 
                     PlacesServer.main(new String[]{"3"});
 
+                    Thread.sleep(1000);
+
+                    PlacesServer.main(new String[]{"4"});
+
+                    Thread.sleep(1000);
+
+                    PlacesServer.main(new String[]{"5"});
+
+                    Thread.sleep(10000);
+
+                    PlacesServer.main(new String[]{"6"});
+
+                    Thread.sleep(1000);
+
+                    PlacesServer.main(new String[]{"7"});
+
+                    Thread.sleep(1000);
+
+                    PlacesServer.main(new String[]{"8"});
+
+                    Thread.sleep(1000);
+
+                    PlacesServer.main(new String[]{"9"});
+
+                    Thread.sleep(1000);
+
+                    PlacesServer.main(new String[]{"10"});
+
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
