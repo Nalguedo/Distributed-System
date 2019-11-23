@@ -94,9 +94,6 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                         break;
                                     case "voteleader":
                                         //count vote
-                                        if (votes == 0 && !votingFlag) {
-                                            votingFlag = true;
-                                        }
                                         votes++;
                                         if (votes == systemSize && placeMngrID.trim().equals(messagesAux.get(type).trim())) {
                                             sysSendMsg(multicastSocket, "setleader:" + placeMngrID);
@@ -104,10 +101,13 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
 
                                         break;
                                     case "startvote":
-                                        if(messagesAux.get("keepalive").equals(placeMngrLeader) || placeMngrLeader.equals("noleader")) {
+                                        //if(messagesAux.get("keepalive").equals(placeMngrLeader) || placeMngrLeader.equals("noleader")) {
+                                        if(votes == 0) {
+                                            votingFlag = true;
                                             sysLeaderElection();
-                                            sysSendMsg(multicastSocket, strKeepAlive + "&voteleader:" + placeMngrLeaderCandidate);
                                         }
+                                            sysSendMsg(multicastSocket, strKeepAlive + "&voteleader:" + placeMngrLeaderCandidate);
+                                        //}
                                         break;
                                     case "setleader":
                                         setPlaceMngrLeader(messagesAux.get("setleader"));
@@ -235,15 +235,17 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         addSysViewAux(max);
         //sysViewAux.add(max);
         placeMngrLeaderCandidate = max;
+
+        //sysViewAux.clear();
+        //Todo método para verificar diferenças nos dos Arraylist
+
         //Clear List of Placemanagers
         sysView.clear();
         //Set updated Placemanagers list
         sysView.addAll(sysViewAux);
-
-        //sysViewAux.clear();
-
+        
         systemSize = sysView.size();
-        addSysViewAux(placeMngrID);
+        //addSysViewAux(placeMngrID);
         //sysViewAux.add(placeMngrID);
 
         if (placeMngrLeaderCandidate.isEmpty())
@@ -318,7 +320,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         String _idTrimmed = _id.trim();
         if (!sysViewAux.contains(_idTrimmed)) {
             sysViewAux.add(_idTrimmed);
-            sysLeaderElection();
+            //sysLeaderElection();
         }
     }
 }
