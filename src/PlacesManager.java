@@ -231,9 +231,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                 max = entry ;
             }
         }
-        //Set highest hash as leader
-        addSysViewAux(max);
-        //sysViewAux.add(max);
+        //Set highest hash as leader candidate
         placeMngrLeaderCandidate = max;
 
         //sysViewAux.clear();
@@ -243,7 +241,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         sysView.clear();
         //Set updated Placemanagers list
         sysView.addAll(sysViewAux);
-        
+
         systemSize = sysView.size();
         //addSysViewAux(placeMngrID);
         //sysViewAux.add(placeMngrID);
@@ -320,7 +318,6 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         String _idTrimmed = _id.trim();
         if (!sysViewAux.contains(_idTrimmed)) {
             sysViewAux.add(_idTrimmed);
-            //sysLeaderElection();
         }
     }
 }
