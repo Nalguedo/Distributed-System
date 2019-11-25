@@ -1,12 +1,11 @@
+import utils.Utils;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
 import java.util.*;
 
 public class PlacesManager extends UnicastRemoteObject implements PlacesListInterface {
@@ -33,14 +32,13 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     private int placeMngrPort;
     //System IP Address
     private InetAddress sysAddr;
-    //Thread ID
-    private Thread threadID;
 
     PlacesManager(InetAddress _addr, int _port) throws RemoteException {
-        threadID = Thread.currentThread();
+        //Thread ID
+        Thread threadID = Thread.currentThread();
         sysAddr = _addr;
         placeMngrPort = _port;
-        placeMngrID = hashString();
+        placeMngrID = Utils.hashString(placeMngrPort, threadID).trim();
         placeMngrLeaderCandidate = placeMngrID;
         //Type of Messages
         String strHello = "hello:" + placeMngrID;
@@ -76,10 +74,10 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                         try {
                             //receive the message and print it on console
                             multicastSocket.receive(reply);
-                            String received = new String(reply.getData());
+                            String received = new String(reply.getData()).trim();
 
                             //Decompress message
-                            messages = messageDecompressor(received);
+                            messages = Utils.messageDecompressor(received);
                             messagesAux.clear();
                             messagesAux.putAll(messages);
 
@@ -89,7 +87,6 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                 switch(type) {
                                     case "keepalive":
                                         //Store received Placemanager ID
-                                        //sysViewAux.put(messages.get(type), false);
                                         addSysViewAux(messages.get(type));
                                         break;
                                     case "voteleader":
@@ -98,16 +95,13 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                         if (votes == systemSize && placeMngrID.trim().equals(messagesAux.get(type).trim())) {
                                             sysSendMsg(multicastSocket, "setleader:" + placeMngrID);
                                         }
-
                                         break;
                                     case "startvote":
-                                        //if(messagesAux.get("keepalive").equals(placeMngrLeader) || placeMngrLeader.equals("noleader")) {
                                         if(votes == 0) {
                                             votingFlag = true;
                                             sysLeaderElection();
                                         }
                                             sysSendMsg(multicastSocket, strKeepAlive + "&voteleader:" + placeMngrLeaderCandidate);
-                                        //}
                                         break;
                                     case "setleader":
                                         setPlaceMngrLeader(messagesAux.get("setleader"));
@@ -132,7 +126,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                 }
                             }
 
-                            System.out.println("Reply: " + received);
+                            System.out.println("Reply: " + received.trim() + " Who Received: " + placeMngrID);
 
                             //TODO: manage failures
                             //TODO: Receive Message Only From Group
@@ -185,13 +179,10 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                 sysSendMsg(multicastSocket, strKeepAlive + "&startvote:" + placeMngrLeaderCandidate);
                             }
                             else {
-                                //sysLeaderElection();
                                 sysSendMsg(multicastSocket, strKeepAlive);
                             }
 
-                            System.out.println("\n\nPlacemanager id:" + placeMngrID + "\nSelected Lider:" + placeMngrLeader +
-                                    "\nSystem Size:" + systemSize +
-                                    "\nsysAux Size:" + sysViewAux.size());
+                            System.out.println("\n\nPlacemanager id:" + placeMngrID + "\nSelected Lider:" + placeMngrLeader);
                         }
                     }
                 });
@@ -250,52 +241,6 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
             placeMngrLeaderCandidate = placeMngrID;
     }
 
-    private String hashString() {
-        Instant instant = Instant.now();
-        String _id = String.valueOf(placeMngrPort) + threadID + instant.toEpochMilli();
-        MessageDigest md = null;
-        try {
-            md = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        assert md != null;
-        md.update(_id.getBytes());
-        byte[] digest = md.digest();
-
-        //Converting the byte array in to HexString format
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : digest) {
-            hexString.append(Integer.toHexString(0xFF & b));
-        }
-
-        return hexString.toString().trim();
-    }
-
-    //Compress diferent messages in one string, receive existing message (can be empty), the Type of Message and the Value
-    //Message Compressed looks like this "type:value&type:value"
-    private synchronized String messageCompressor(String existingMessage, String _type, String _value){
-        if (existingMessage.isEmpty())
-        {
-            existingMessage = _type + ":" + _value; //param:value
-        }else{
-            existingMessage = existingMessage + "&" + _type + ":" + _value; //existingMessage&param:value
-        }
-        return existingMessage;
-    }
-
-    //Decompress the String with the diferent types and values into a Hash<String,String>
-    private synchronized HashMap<String,String> messageDecompressor(String message){
-        String[] parts = message.split("&"); //First Split the String in a String[] (array) with the diferent messages "type:value"
-        HashMap<String,String> decompressedMessage = new HashMap<>();
-        String[] help;
-        for (String part : parts) {
-            help = part.split(":"); //Split the message in Type and Value
-            decompressedMessage.put(help[0], help[1]); //Add the type as key and the Value as value to the HashMap
-        }
-        return decompressedMessage;
-    }
-
     private synchronized void sysSendMsg(MulticastSocket _multicastSocket, String _message) {
         DatagramPacket msgDatagram = new DatagramPacket(_message.getBytes(), _message.getBytes().length, sysAddr, placeMngrPort);
         try {
@@ -311,7 +256,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     }
 
     private synchronized void setPlaceMngrLeader(String _placeMngrLeaderID) {
-        placeMngrLeader = _placeMngrLeaderID;
+        placeMngrLeader = _placeMngrLeaderID.trim();
     }
 
     private synchronized void addSysViewAux(String _id) {
