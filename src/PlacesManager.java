@@ -187,7 +187,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                 }
                             }
 
-                            System.out.println("S: " + systemSize +  " Reply: " + received.trim() + " Who Received: " + placeMngrID);
+                            System.out.println("S: " + sysViewAux.size() +  " Reply: " + received.trim() + " Who Received: " + placeMngrID);
 
                             //TODO: manage failures
                             //TODO: Receive Message Only From Group
@@ -253,18 +253,17 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                     if (placeMngrLeaderCandidate.equals(placeMngrID))
                                         sysSendMsg(multicastSocket, "keepalive:" + placeMngrLeader + "&startvote:" + placeMngrLeaderCandidate);
                             }
-                            else if (!votingFlag) {
-                                count++;
-                                sysSendMsg(multicastSocket, strKeepAlive);
-                                if (count > 5 && placeMngrID.trim().equals(placeMngrLeader.trim())) {
-                                    sysViewAux.clear();
-                                    count = 0;
-                                }
+
+                            if (count > 5) {
+                                sysViewAux.clear();
+                                count = 0;
                             }
                             //ToDO -> Se o server sair .... quem assume?!?!
-                            if(count > 10 && placeMngrID.contains("aa")) {
+                            if(count == 5 && placeMngrID.contains("aa")) {
                                 terminateFlag = true;
                             }
+                            count++;
+                            sysSendMsg(multicastSocket, strKeepAlive);
                             System.out.println("\n\nPlacemanager id:" + placeMngrID + "\nSelected Lider:" + placeMngrLeader);
                         }
                     }
