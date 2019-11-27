@@ -238,7 +238,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                         while (!terminateFlag) {
                             try {
                                 //Setup time wait
-                                Thread.sleep(5000);
+                                Thread.sleep(10000);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -253,15 +253,15 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                     if (placeMngrLeaderCandidate.equals(placeMngrID))
                                         sysSendMsg(multicastSocket, "keepalive:" + placeMngrLeader + "&startvote:" + placeMngrLeaderCandidate);
                             }
-
-                            if (count > 5) {
+                            //Adjust accordingly size of network and keepalive time
+                            if (count > 6) {
                                 sysViewAux.clear();
                                 count = 0;
                             }
-                            //ToDO -> Se o server sair .... quem assume?!?!
-                            if(count == 5 && placeMngrID.contains("aa")) {
+                            //Test removal
+                            //if(count == 5 && placeMngrID.contains("aa")) {
                                 terminateFlag = true;
-                            }
+                            //}
                             count++;
                             sysSendMsg(multicastSocket, strKeepAlive);
                             System.out.println("\n\nPlacemanager id:" + placeMngrID + "\nSelected Lider:" + placeMngrLeader);
