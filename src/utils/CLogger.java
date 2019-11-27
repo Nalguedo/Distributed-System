@@ -38,9 +38,7 @@ public class CLogger {
 
     private void CreateLogFile() {
         try {
-            writer = new PrintWriter(FilePath, StandardCharsets.UTF_8); //Criação do Ficheiro, caso exista apaga e cria novo
-        } catch (FileNotFoundException | UnsupportedEncodingException e) {
-            e.printStackTrace();
+            writer = new PrintWriter(FilePath + ".txt", StandardCharsets.UTF_8); //Criação do Ficheiro, caso exista apaga e cria novo
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -77,7 +75,7 @@ public class CLogger {
         WriteToLog(fileline);
     }
 
-    public void DeleteLog() {
+    private void DeleteLog() {
         FileStream.close();
         writer.close();
         try {
