@@ -259,9 +259,9 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                 count = 0;
                             }
                             //Test removal
-                            //if(count == 5 && placeMngrID.contains("aa")) {
+                            /*if(count == 5 && placeMngrID.contains("aa")) {
                                 terminateFlag = true;
-                            //}
+                            }*/
                             count++;
                             sysSendMsg(multicastSocket, strKeepAlive);
                             System.out.println("\n\nPlacemanager id:" + placeMngrID + "\nSelected Lider:" + placeMngrLeader);
