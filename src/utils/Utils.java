@@ -55,4 +55,8 @@ public class Utils {
         }
         return decompressedMessage;
     }
+    //Preenche a String com espaços até chegar a um dado comprimento
+    public static String rightPadding(String str, int num) {
+        return String.format("%1$-" + num + "s", str);
+    }
 }
