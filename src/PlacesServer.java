@@ -2,7 +2,7 @@ import java.net.InetAddress;
 
 public class PlacesServer {
 
-    public static void main (String[] args) {
+    public static void main(String[] args) {
         try{
             //multicast address used
             InetAddress address = InetAddress.getByName("230.0.0.0");

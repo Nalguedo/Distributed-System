@@ -23,7 +23,7 @@ public class Client {
 
                     PlacesServer.main(new String[]{"5"});
 
-                    Thread.sleep(10000);
+                    Thread.sleep(1000);
 
                     PlacesServer.main(new String[]{"6"});
 
