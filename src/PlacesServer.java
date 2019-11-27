@@ -1,3 +1,5 @@
+import utils.CLogger;
+
 import java.net.InetAddress;
 
 public class PlacesServer {
@@ -9,7 +11,8 @@ public class PlacesServer {
             //port used
             int port = 6789;
             //create PlacesManager
-            PlacesManager placeList = new PlacesManager(address, port);
+            CLogger LogFile= new CLogger(args[0]);
+            PlacesManager placeList = new PlacesManager(address, port,LogFile);
         }
         catch(Exception e) {
             System.out.println("Place server " + args[0] + " main " + e.getMessage());

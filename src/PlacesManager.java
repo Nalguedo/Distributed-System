@@ -1,3 +1,4 @@
+import utils.CLogger;
 import utils.Utils;
 
 import java.io.IOException;
@@ -7,6 +8,8 @@ import java.net.MulticastSocket;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
+
+import static utils.Utils.messageDecompressor;
 
 public class PlacesManager extends UnicastRemoteObject implements PlacesListInterface {
     //Flags
@@ -32,8 +35,10 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     private int placeMngrPort;
     //System IP Address
     private InetAddress sysAddr;
+    //Log file
+    private CLogger logFile;
 
-    PlacesManager(InetAddress _addr, int _port) throws RemoteException {
+    PlacesManager(InetAddress _addr, int _port, CLogger LogFile) throws RemoteException {
         //Thread ID
         Thread threadID = Thread.currentThread();
         sysAddr = _addr;
@@ -43,7 +48,8 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         //Type of Messages
         String strHello = "hello:" + placeMngrID;
         strKeepAlive = "keepalive:" + placeMngrID;
-
+        //Log
+        logFile = LogFile;
         //First message sending - Server announce
         try {
             //bind socket to the port
@@ -60,7 +66,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
             }
 
             //create a new thread to listen to other server's messages
-            Thread threadListen = (new Thread() {
+            Thread threadListen = new Thread() {
                 public void run() {
 
                     //Hash that will receive the decompressed message Type : Value
@@ -77,7 +83,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                             String received = new String(reply.getData()).trim();
 
                             //Decompress message
-                            messages = Utils.messageDecompressor(received);
+                            messages = messageDecompressor(received);
                             messagesAux.clear();
                             messagesAux.putAll(messages);
 
@@ -94,12 +100,14 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                         votes++;
                                         if (votes == systemSize && placeMngrID.trim().equals(messagesAux.get(type).trim())) {
                                             sysSendMsg(multicastSocket, "setleader:" + placeMngrID);
+
                                         }
                                         break;
                                     case "startvote":
                                         if(votes == 0) {
                                             votingFlag = true;
                                             sysLeaderElection();
+
                                         }
                                             sysSendMsg(multicastSocket, strKeepAlive + "&voteleader:" + placeMngrLeaderCandidate);
                                         break;
@@ -128,6 +136,9 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
 
                             System.out.println("Reply: " + received.trim() + " Who Received: " + placeMngrID);
 
+
+                            HashMap<String,String> decompressedKeepAlive = messageDecompressor(received.trim());
+                            LogFile.keepAliveToLog(decompressedKeepAlive);
                             //TODO: manage failures
                             //TODO: Receive Message Only From Group
                             //TODO: LOG
@@ -144,7 +155,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                             e.printStackTrace();
                         }*/
                 }
-            });
+            };
             threadListen.start();
 
             //Only main thread will send messages
@@ -157,6 +168,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                         sysLeaderElection();
                         placeMngrLeader = placeMngrLeaderCandidate;
                         System.out.println("Placemanager id:" + placeMngrID + "\nSelected Lider:" + placeMngrLeader);
+                        LogFile.LeaderSelectionToLog(placeMngrID,placeMngrLeader);
                         //sysSendMsg(multicastSocket, strKeepAlive + "&startvote:" + placeMngrID);
                     }
                 } catch (InterruptedException e) {
