@@ -1,4 +1,5 @@
 import utils.Utils;
+import utils.CLogger;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -35,7 +36,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     //System IP Address
     private InetAddress sysAddr;
 
-    PlacesManager(InetAddress _addr, int _port) throws RemoteException {
+    PlacesManager(InetAddress _addr, int _port, CLogger LogFile) throws RemoteException {
         //Thread ID
         Thread threadID = Thread.currentThread();
         sysAddr = _addr;
@@ -188,7 +189,8 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                             }
 
                             System.out.println("S: " + sysViewAux.size() +  " Reply: " + received.trim() + " Who Received: " + placeMngrID);
-
+                            HashMap<String,String> decompressedKeepAlive = Utils.messageDecompressor(received.trim());
+                            LogFile.keepAliveToLog(decompressedKeepAlive);
                             //TODO: manage failures
                             //TODO: Receive Message Only From Group
                             //TODO: LOG
@@ -226,7 +228,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                         sysLeaderElection();
                         placeMngrLeader = placeMngrLeaderCandidate;
                         System.out.println("Placemanager id:" + placeMngrID + "\nSelected Lider:" + placeMngrLeader);
-                        //sysSendMsg(multicastSocket, strKeepAlive + "&startvote:" + placeMngrID);
+                        LogFile.LeaderSelectionToLog(placeMngrID,placeMngrLeader);
                     }
                 } catch (InterruptedException e) {
                     e.printStackTrace();

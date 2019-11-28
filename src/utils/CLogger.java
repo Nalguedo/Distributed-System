@@ -21,7 +21,7 @@ public class CLogger {
 
     public CLogger(String NomeServer) {
         this.NomeServer = NomeServer;
-        this.FilePath = "Logs/" + NomeServer;
+        this.FilePath = "Logs/" + NomeServer + ".txt";
         CreateLogFile(); //Criação do Ficheiro Log
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"); //Formato da data para aparecer no log
@@ -33,12 +33,11 @@ public class CLogger {
             e.printStackTrace();
         }
         WriteToLog(fileline);
-        DeleteLog();
     }
 
     private void CreateLogFile() {
         try {
-            writer = new PrintWriter(FilePath + ".txt", StandardCharsets.UTF_8); //Criação do Ficheiro, caso exista apaga e cria novo
+            writer = new PrintWriter(FilePath, StandardCharsets.UTF_8); //Criação do Ficheiro, caso exista apaga e cria novo
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -52,7 +51,7 @@ public class CLogger {
         }
         FileStream.println(content);
     }
-    public void LeaderSelectionToLog(String placeMngrID, String placeMngrLeader) {
+    public void LeaderSelectionToLog(String placeMngrID,String placeMngrLeader) {
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"); //Formato da data para aparecer no log
         String Type= "| Type:Leader Selection";
@@ -75,7 +74,7 @@ public class CLogger {
         WriteToLog(fileline);
     }
 
-    private void DeleteLog() {
+    public void DeleteLog() {
         FileStream.close();
         writer.close();
         try {

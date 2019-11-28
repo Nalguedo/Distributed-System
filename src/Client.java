@@ -19,7 +19,7 @@ public class Client {
 
                     PlacesServer.main(new String[]{"4"});
 
-                    Thread.sleep(1000);
+                    /*Thread.sleep(1000);
 
                     PlacesServer.main(new String[]{"5"});
 
@@ -41,7 +41,7 @@ public class Client {
 
                     Thread.sleep(1000);
 
-                    PlacesServer.main(new String[]{"10"});
+                    PlacesServer.main(new String[]{"10"});*/
 
                 } catch (InterruptedException e) {
                     e.printStackTrace();
