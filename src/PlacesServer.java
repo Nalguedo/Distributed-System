@@ -12,7 +12,7 @@ public class PlacesServer {
             int port = 6789;
             //create PlacesManager
             CLogger LogFile= new CLogger(args[0]);
-            PlacesManager placeList = new PlacesManager(address, port,LogFile);
+            PlacesManager placeList = new PlacesManager(address, port);
         }
         catch(Exception e) {
             System.out.println("Place server " + args[0] + " main " + e.getMessage());

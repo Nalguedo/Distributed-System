@@ -52,7 +52,7 @@ public class CLogger {
         }
         FileStream.println(content);
     }
-    public void LeaderSelectionToLog(String placeMngrID,String placeMngrLeader) {
+    public void LeaderSelectionToLog(String placeMngrID, String placeMngrLeader) {
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"); //Formato da data para aparecer no log
         String Type= "| Type:Leader Selection";
