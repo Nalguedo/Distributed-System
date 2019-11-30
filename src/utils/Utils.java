@@ -5,9 +5,20 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HashMap;
 
+/**
+ * @author Gonçalo
+ * @version 1.0
+ * */
+
 public class Utils {
 
-
+    /**
+     * Create unique server id hash using given params and instant milli
+     *
+     * @param _placeMngrPort Port number
+     * @param _threadID      Server main thread id
+     * @return String - Hash ID using digest "SHA-256"
+     */
     public static String hashString(Integer _placeMngrPort, Thread _threadID) {
         Instant instant = Instant.now();
         String _id = String.valueOf(_placeMngrPort) + _threadID + instant.toEpochMilli();
@@ -30,24 +41,30 @@ public class Utils {
         return hexString.toString().trim();
     }
 
+    /**
+     * Create unique server id hash using given params and instant milli
+     *
+     * @param existingMessage Port number
+     * @param _type      Server main thread id
+     * @param _value      Server main thread id
+     * @return String - Hash ID using digest "SHA-256"
+     */
     //Compress diferent messages in one string, receive existing message (can be empty), the Type of Message and the Value
     //Message Compressed looks like this "type:value&type:value"
-    public static synchronized String messageCompressor(String existingMessage, String _type, String _value){
-        if (existingMessage.isEmpty())
-        {
+    public static synchronized String messageCompressor(String existingMessage, String _type, String _value) {
+        if (existingMessage.isEmpty()) {
             existingMessage = _type + ":" + _value; //param:value
-        }else{
+        } else {
             existingMessage = existingMessage + "&" + _type + ":" + _value; //existingMessage&param:value
         }
         return existingMessage;
     }
 
 
-
     //Decompress the String with the diferent types and values into a Hash<String,String>
-    public static synchronized HashMap<String,String> messageDecompressor(String message){
+    public static synchronized HashMap<String, String> messageDecompressor(String message) {
         String[] parts = message.split("&"); //First Split the String in a String[] (array) with the diferent messages "type:value"
-        HashMap<String,String> decompressedMessage = new HashMap<>();
+        HashMap<String, String> decompressedMessage = new HashMap<>();
         String[] help;
         for (String part : parts) {
             help = part.split(":"); //Split the message in Type and Value
@@ -55,6 +72,7 @@ public class Utils {
         }
         return decompressedMessage;
     }
+
     //Preenche a String com espaços até chegar a um dado comprimento
     public static String rightPadding(String str, int num) {
         return String.format("%1$-" + num + "s", str);

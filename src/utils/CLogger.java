@@ -35,6 +35,10 @@ public class CLogger {
         WriteToLog(fileline);
     }
 
+    /**
+     * Create or Replace log file *.txt
+     *
+     */
     private void CreateLogFile() {
         try {
             writer = new PrintWriter(FilePath, StandardCharsets.UTF_8); //Criação do Ficheiro, caso exista apaga e cria novo
