@@ -1,20 +1,33 @@
 import utils.CLogger;
+import utils.Utils;
 
+import java.net.UnknownHostException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.net.InetAddress;
 
 public class PlacesServer {
 
     public static void main(String[] args) {
+        Registry sysRegistry;
+        PlacesManager placeList;
+        String placeMngrID;
+        Thread threadID = Thread.currentThread();
+
         try{
-            //multicast address used
             InetAddress address = InetAddress.getByName("230.0.0.0");
-            //port used
-            int port = 6789;
-            //create PlacesManager
-            CLogger LogFile= new CLogger(args[0]);
-            PlacesManager placeList = new PlacesManager(address, port, LogFile);
+            int multicastPort = 6789;
+            int RMIPortSystem = 3000;
+            placeMngrID = Utils.hashString(multicastPort, threadID).trim();
+            CLogger LogFile= new CLogger(placeMngrID);
+            placeList = new PlacesManager(address, multicastPort, RMIPortSystem, placeMngrID,LogFile);
+
+            //Join RMI system registry using same port and unique id
+            sysRegistry = LocateRegistry.getRegistry(RMIPortSystem);
+            sysRegistry.rebind(placeMngrID, placeList );
         }
-        catch(Exception e) {
+        catch(RemoteException | UnknownHostException e) {
             System.out.println("Place server " + args[0] + " main " + e.getMessage());
         }
     }
