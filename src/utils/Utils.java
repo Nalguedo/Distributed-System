@@ -62,12 +62,12 @@ public class Utils {
 
 
     //Decompress the String with the diferent types and values into a Hash<String,String>
-    public static synchronized HashMap<String, String> messageDecompressor(String message) {
-        String[] parts = message.split("&"); //First Split the String in a String[] (array) with the diferent messages "type:value"
+    public static synchronized HashMap<String, String> messageDecompressor(String message, String split1, String split2) {
+        String[] parts = message.split(split1); //First Split the String in a String[] (array) with the diferent messages "type:value"
         HashMap<String, String> decompressedMessage = new HashMap<>();
         String[] help;
         for (String part : parts) {
-            help = part.split(":"); //Split the message in Type and Value
+            help = part.split(split2); //Split the message in Type and Value
             decompressedMessage.put(help[0].trim(), help[1].trim()); //Add the type as key and the Value as value to the HashMap
         }
         return decompressedMessage;
