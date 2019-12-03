@@ -9,20 +9,26 @@ import java.net.InetAddress;
 public class FrontendServer {
 
     public static void main(String[] args) {
-        Registry r;
+        Registry clientRegistry;
+        Registry sysRegistry;
         Frontend frontend;
 
         try{
-            //multicast address used
             InetAddress address = InetAddress.getByName("230.0.0.0");
-            //port used
-            int port = 6789;
-            //create Frontend
-            CLogger LogFile= new CLogger(args[0]);
-            frontend = new Frontend(address, port, LogFile);
+            int multicastPort = 6789;
+            int RMIPortClient = 2000;
+            int RMIPortSystem = 3000;
+            CLogger LogFile= new CLogger("Frontend");
 
-            r = LocateRegistry.createRegistry(Integer.parseInt(args[0]));
-            r.rebind("frontend", frontend );
+            frontend = new Frontend(address, multicastPort, RMIPortSystem, LogFile);
+
+            //Create RMI reachable by clients
+            clientRegistry = LocateRegistry.createRegistry(RMIPortClient);
+            clientRegistry.rebind("frontend", frontend );
+
+            //Create RMI system registry
+            sysRegistry = LocateRegistry.createRegistry(RMIPortSystem);
+            sysRegistry.rebind("frontend", frontend );
         }
         catch(RemoteException | UnknownHostException e) {
             System.out.println("Frontend server " + args[0] + " main " + e.getMessage());

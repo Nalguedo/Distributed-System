@@ -10,16 +10,16 @@ public class Client {
         System.out.println("Localizar Frontend...");
 
         try {
-            frontendInterface = (PlacesListInterface) Naming.lookup("rmi://localhost:4096/frontend");
+            frontendInterface = (PlacesListInterface) Naming.lookup("rmi://localhost:2000/frontend");
 
             Place p1 = new Place("3510", "Viseu");
-            System.out.println("Invocar addPlace() no ReplicaManager para 3510...");
             frontendInterface.addPlace(p1);
 
             Place p2 = frontendInterface.getPlace("3510");
             System.out.println("Result getPlace: " + p2.getPostalCode()  + " : " + p2.getLocality());
         } catch (NotBoundException | RemoteException | MalformedURLException e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("System down!\n\nTry again...");
         }
 
     }

@@ -4,7 +4,10 @@ import utils.CLogger;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.MulticastSocket;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
@@ -33,15 +36,20 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     private String placeMngrID;
     //PlaceManager Port
     private int placeMngrPort;
+    //System RMI Port
+    private int sysRMIPort;
     //System IP Address
     private InetAddress sysAddr;
+    //Multicast Socket
+    private MulticastSocket multicastSocket;
 
-    PlacesManager(InetAddress _addr, int _port, CLogger LogFile) throws RemoteException {
+    PlacesManager(InetAddress addr, int multicastPort, int rmiPort, String placeMID, CLogger LogFile) throws RemoteException {
         //Thread ID
         Thread threadID = Thread.currentThread();
-        sysAddr = _addr;
-        placeMngrPort = _port;
-        placeMngrID = Utils.hashString(placeMngrPort, threadID).trim();
+        sysAddr = addr;
+        placeMngrPort = multicastPort;
+        sysRMIPort = rmiPort;
+        placeMngrID = placeMID;
         placeMngrLeaderCandidate = placeMngrID;
         //Type of Messages
         String strHello = "hello:" + placeMngrID;
@@ -50,11 +58,11 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         //First message sending - Server announce
         try {
             //bind socket to the port
-            MulticastSocket multicastSocket = new MulticastSocket(_port);
+            multicastSocket = new MulticastSocket(multicastPort);
             //join the group in the specified address
-            multicastSocket.joinGroup(_addr);
+            multicastSocket.joinGroup(addr);
             //create a new datagram packet
-            DatagramPacket msg = new DatagramPacket(strHello.getBytes(), strHello.getBytes().length, _addr, _port);
+            DatagramPacket msg = new DatagramPacket(strHello.getBytes(), strHello.getBytes().length, addr, multicastPort);
             try {
                 //send the datagram packet
                 multicastSocket.send(msg);
@@ -152,7 +160,6 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                         HashMap<String,String> decompressedKeepAlive = Utils.messageDecompressor(received.trim(), "&", ":");
                         LogFile.keepAliveToLog(decompressedKeepAlive);
 
-                        //TODO: Receive Message Only From Group
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -228,18 +235,21 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     }
 
     @Override
-    public void addPlace(Place p) throws RemoteException {
+    public synchronized void addPlace(Place p) throws RemoteException {
         if (!places.contains(p))
             places.add(p);
+        //TODO messageCompressor implementation
+        sysSendMsg(multicastSocket, strKeepAlive + "&callmethod:addplace&params:locality," + p.getLocality() + ";postalcode," + p.getPostalCode());
+        System.out.println("\n\nNew Place Added: " + p.getLocality() + " : " + p.getPostalCode());
     }
 
     @Override
-    public ArrayList<Place> allPlaces() throws RemoteException {
+    public synchronized ArrayList<Place> allPlaces() throws RemoteException {
         return places;
     }
 
     @Override
-    public Place getPlace(String objectID) throws RemoteException {
+    public synchronized Place getPlace(String objectID) throws RemoteException {
         for (Place place : places) {
             if (place.getPostalCode().equals(objectID)) {
                 return place;
@@ -249,7 +259,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     }
 
     @Override
-    public boolean removePlace(String objectID) throws RemoteException {
+    public synchronized boolean removePlace(String objectID) throws RemoteException {
         for (Place place : places) {
             if (place.getPostalCode().equals(objectID)) {
                 places.remove(place);
@@ -274,11 +284,11 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
             placeMngrLeaderCandidate = placeMngrID;
     }
 
-    private synchronized void sysSendMsg(MulticastSocket _multicastSocket, String _message) {
-        DatagramPacket msgDatagram = new DatagramPacket(_message.getBytes(), _message.getBytes().length, sysAddr, placeMngrPort);
+    private synchronized void sysSendMsg(MulticastSocket multicastSocket, String message) {
+        DatagramPacket msgDatagram = new DatagramPacket(message.getBytes(), message.getBytes().length, sysAddr, placeMngrPort);
         try {
             //send the datagram packet
-            _multicastSocket.send(msgDatagram);
+            multicastSocket.send(msgDatagram);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -308,14 +318,14 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         return sysViewAux.size() != sysView.size();
     }
 
-    private synchronized void setPlaceMngrLeader(String _placeMngrLeaderID) {
-        placeMngrLeader = _placeMngrLeaderID.trim();
+    private synchronized void setPlaceMngrLeader(String placeMngrLeaderID) {
+        placeMngrLeader = placeMngrLeaderID.trim();
     }
 
-    private synchronized void addSysViewAux(String _id) {
-        String _idTrimmed = _id.trim();
-        if (!sysViewAux.contains(_idTrimmed)) {
-            sysViewAux.add(_idTrimmed);
+    private synchronized void addSysViewAux(String id) {
+        String idTrimmed = id.trim();
+        if (!sysViewAux.contains(idTrimmed)) {
+            sysViewAux.add(idTrimmed);
         }
     }
 
@@ -326,12 +336,14 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
      * @param params      String with all params split [addplace$3500,Viseu]
      */
     private void callMethodByName(String methodName, String params) throws RemoteException {
-        HashMap<String,String> hashParams = Utils.messageDecompressor(params, "$", ",");
+        HashMap<String,String> hashParams = Utils.messageDecompressor(params, ";", ",");
         Place newPlace;
         switch (methodName) {
             case "addplace":
                 newPlace = new Place(hashParams.get("postalcode"), hashParams.get("locality"));
-                addPlace(newPlace);
+                if (!places.contains(newPlace))
+                    places.add(newPlace);
+                System.out.println("\n\nNew Place Added: " + newPlace.getLocality() + " : " + newPlace.getPostalCode() + "\nPlacemanager: " + placeMngrID);
                 break;
             case "removeplace":
                 removePlace(hashParams.get(methodName));
@@ -354,6 +366,15 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                 break;
             default:
                 //code block
+        }
+    }
+
+    private synchronized PlacesListInterface getRemotePlaceMngr(String remotePlaceMngrID) {
+        try {
+            return (PlacesListInterface) Naming.lookup("rmi://localhost:" + sysRMIPort + "/" + remotePlaceMngrID);
+        } catch (NotBoundException | MalformedURLException | RemoteException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }
