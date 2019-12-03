@@ -5,6 +5,9 @@ public class Initializer {
         Thread t = (new Thread() {
             public void run() {
                 try {
+
+
+
                     PlacesServer.main(new String[]{"2001"});
 
                     Thread.sleep(1000);

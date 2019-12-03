@@ -6,26 +6,26 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.net.InetAddress;
 
-public class PlacesServer {
+public class FrontendServer {
 
     public static void main(String[] args) {
         Registry r;
-        PlacesManager placeList;
+        Frontend frontend;
 
         try{
             //multicast address used
             InetAddress address = InetAddress.getByName("230.0.0.0");
             //port used
             int port = 6789;
-            //create PlacesManager
+            //create Frontend
             CLogger LogFile= new CLogger(args[0]);
-            placeList = new PlacesManager(address, port, LogFile);
+            frontend = new Frontend(address, port, LogFile);
 
             r = LocateRegistry.createRegistry(Integer.parseInt(args[0]));
-            r.rebind("placelist", placeList );
+            r.rebind("frontend", frontend );
         }
         catch(RemoteException | UnknownHostException e) {
-            System.out.println("Place server " + args[0] + " main " + e.getMessage());
+            System.out.println("Frontend server " + args[0] + " main " + e.getMessage());
         }
     }
 }
