@@ -12,8 +12,9 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
-public class Frontend extends UnicastRemoteObject implements PlacesListInterface {
+public class Frontend extends UnicastRemoteObject implements FrontendInterface {
     //Flags
     private boolean terminateFlag = false;
     private boolean sysChangeFlag = false;
@@ -36,6 +37,14 @@ public class Frontend extends UnicastRemoteObject implements PlacesListInterface
     //System IP Address
     private InetAddress sysAddr;
 
+    /**
+     * Frontend responsible class, assure communication between clients and system servers
+     *
+     * @param addr              Network multicast address
+     * @param multicastPort     Multicast Port
+     * @param rmiPort           Registry port
+     * @param LogFile           Server specific log
+     */
     Frontend(InetAddress addr, int multicastPort, int rmiPort, CLogger LogFile) throws RemoteException {
         //Thread ID
         Thread threadID = Thread.currentThread();
@@ -148,34 +157,35 @@ public class Frontend extends UnicastRemoteObject implements PlacesListInterface
     }
 
     @Override
-    public void addPlace(Place p) throws RemoteException {
+    public boolean insertPlace(String postalCode, String locality) throws RemoteException {
+        Place newPlace = new Place(postalCode, locality);
         PlacesListInterface placesListInterface = getRemotePlaceMngr(placeMngrLeader);
-        if (placesListInterface != null) {
-            placesListInterface.addPlace(p);
-        }
+
+        if (placesListInterface == null)
+            return false;
+
+        return placesListInterface.addPlace(newPlace);
     }
 
     @Override
-    public ArrayList<Place> allPlaces() throws RemoteException {
+    public boolean removePlace(String postalCode) throws RemoteException {
         PlacesListInterface placesListInterface = getRemotePlaceMngr(placeMngrLeader);
-        assert placesListInterface != null;
-        return placesListInterface.allPlaces();
+
+        if (placesListInterface == null)
+            return false;
+
+        return placesListInterface.removePlace(postalCode);
     }
 
     @Override
-    public Place getPlace(String objectID) throws RemoteException {
-        //TODO ask random server for place
-        PlacesListInterface placesListInterface = getRemotePlaceMngr(placeMngrLeader);
-        assert placesListInterface != null;
-        return placesListInterface.getPlace(objectID);
+    public String requestServer() throws RemoteException {
+        Random randId = new Random();
+
+        int serverId = randId.nextInt(sysView.size());
+
+        return "rmi://localhost:" + sysRMIPort + "/" + sysView.get(serverId);
     }
 
-    @Override
-    public boolean removePlace(String objectID) throws RemoteException {
-        PlacesListInterface placesListInterface = getRemotePlaceMngr(placeMngrLeader);
-        assert placesListInterface != null;
-        return placesListInterface.removePlace(objectID);
-    }
 
     private synchronized void sysLeaderElection() {
         String max = "";
@@ -229,4 +239,5 @@ public class Frontend extends UnicastRemoteObject implements PlacesListInterface
             return null;
         }
     }
+
 }

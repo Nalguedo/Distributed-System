@@ -19,14 +19,20 @@ public class CLogger {
     private PrintStream FileStream;
     private String FilePath;
 
+    /**
+     *
+     * Class CLogger responsible for create or replace log files with server name and creation date
+     *
+     * @param NomeServer     Server name
+     */
     public CLogger(String NomeServer) {
         this.NomeServer = NomeServer;
         this.FilePath = "Logs/" + NomeServer + ".txt";
-        CreateLogFile(); //Criação do Ficheiro Log
+        CreateLogFile();
         Date obDate = new Date();
-        dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"); //Formato da data para aparecer no log
+        dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
         String fileline = "------------------------------------------File created at: "+ dateFormat.format(obDate) + " | Server:" + NomeServer + "------------------------------------------"; // Criação da 1 linha do Ficheiro
-        //Criação da Stream que vai ser usada para escrever no Ficheiro
+
         try {
             FileStream = new PrintStream(new File(FilePath));
         } catch (FileNotFoundException e) {
@@ -36,25 +42,38 @@ public class CLogger {
     }
 
     /**
-     * Create or Replace log file *.txt
      *
+     * Create or Replace log file *.txt
      */
     private void CreateLogFile() {
         try {
-            writer = new PrintWriter(FilePath, StandardCharsets.UTF_8); //Criação do Ficheiro, caso exista apaga e cria novo
+            writer = new PrintWriter(FilePath, StandardCharsets.UTF_8);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    /**
+     *
+     * Log writer
+     *
+     * @param content      String provided to append into log file
+     */
     private void WriteToLog(String content) {
-        //Verificação se o Ficheiro Log existe
         File f = new File(FilePath);
         if(!f.exists()) {
-            // Caso não exista cria o ficheiro
             CreateLogFile();
         }
         FileStream.println(content);
     }
+
+    /**
+     *
+     *
+     *
+     * @param placeMngrID
+     * @param placeMngrLeader
+     */
     public void LeaderSelectionToLog(String placeMngrID,String placeMngrLeader) {
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"); //Formato da data para aparecer no log
@@ -65,6 +84,12 @@ public class CLogger {
         WriteToLog(fileline);
     }
 
+    /**
+     *
+     *
+     *
+     * @param decompressedKeepAlive
+     */
     public void keepAliveToLog(HashMap<String,String> decompressedKeepAlive) {
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"); //Formato da data para aparecer no log
@@ -78,6 +103,10 @@ public class CLogger {
         WriteToLog(fileline);
     }
 
+    /**
+     *
+     * Log file delete
+     */
     public void DeleteLog() {
         FileStream.close();
         writer.close();

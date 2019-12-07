@@ -1,27 +1,27 @@
 package utils;
 
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HashMap;
 
 /**
- * @author Gonçalo
- * @version 1.0
- * */
+ * @version 1.1
+ */
 
 public class Utils {
 
     /**
      * Create unique server id hash using given params and instant milli
      *
-     * @param _placeMngrPort Port number
-     * @param _threadID      Server main thread id
-     * @return String - Hash ID using digest "SHA-256"
+     * @param placeMngrPort Port number
+     * @param threadID      Server main thread id
+     * @return String           Hash ID using digest "SHA-256"
      */
-    public static String hashString(Integer _placeMngrPort, Thread _threadID) {
+    public static String hashString(Integer placeMngrPort, Thread threadID) {
         Instant instant = Instant.now();
-        String _id = String.valueOf(_placeMngrPort) + _threadID + instant.toEpochMilli();
+        String _id = String.valueOf(placeMngrPort) + threadID + instant.toEpochMilli();
         MessageDigest md = null;
         try {
             md = MessageDigest.getInstance("SHA-256");
@@ -42,39 +42,52 @@ public class Utils {
     }
 
     /**
-     * Create unique server id hash using given params and instant milli
+     * Create string with multi key value pairs divided by split chars provided
      *
-     * @param existingMessage Port number
-     * @param _type      Server main thread id
-     * @param _value      Server main thread id
-     * @return String - Hash ID using digest "SHA-256"
+     * @param existingMessage Existing string (may be empty)
+     * @param type            Message type (key)
+     * @param value           Message (value)
+     * @param split1          Entry divisor char
+     * @param split2          Key value divisor char
+     * @return String         "type:value&type:value"
      */
-    //Compress diferent messages in one string, receive existing message (can be empty), the Type of Message and the Value
-    //Message Compressed looks like this "type:value&type:value"
-    public static synchronized String messageCompressor(String existingMessage, String _type, String _value) {
+    public static synchronized String messageCompressor(String existingMessage, String type, String value, String split1, String split2) {
         if (existingMessage.isEmpty()) {
-            existingMessage = _type + ":" + _value; //param:value
+            existingMessage = type + split2 + value;
         } else {
-            existingMessage = existingMessage + "&" + _type + ":" + _value; //existingMessage&param:value
+            existingMessage = existingMessage + split1 + type + split2 + value;
         }
         return existingMessage;
     }
 
-
-    //Decompress the String with the diferent types and values into a Hash<String,String>
+    /**
+     * Extract key value pairs into HashMap divided by split chars provided
+     *
+     * @param message Existing string
+     * @param split1  Entry divisor char
+     * @param split2  Key value divisor char
+     * @return HashMap      Contains all pairs identified in message string
+     */
     public static synchronized HashMap<String, String> messageDecompressor(String message, String split1, String split2) {
-        String[] parts = message.split(split1); //First Split the String in a String[] (array) with the diferent messages "type:value"
+        String[] parts = message.split(split1);
         HashMap<String, String> decompressedMessage = new HashMap<>();
         String[] help;
         for (String part : parts) {
-            help = part.split(split2); //Split the message in Type and Value
-            decompressedMessage.put(help[0].trim(), help[1].trim()); //Add the type as key and the Value as value to the HashMap
+            help = part.split(split2);
+            decompressedMessage.put(help[0].trim(), help[1].trim());
         }
         return decompressedMessage;
     }
 
-    //Preenche a String com espaços até chegar a um dado comprimento
+    /**
+     * Increase string length with space char
+     *
+     * @param str Existing string
+     * @param num String size limit
+     * @return String     num sized string with spaces
+     */
     public static String rightPadding(String str, int num) {
         return String.format("%1$-" + num + "s", str);
     }
+
 }

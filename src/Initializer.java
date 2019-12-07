@@ -1,7 +1,10 @@
-
+/**
+ * Initialize Frontend server and x PlaceManager instances
+ *
+ * @version 1.1
+ */
 public class Initializer {
     public static void main (String[] args) throws InterruptedException {
-        //Run X instances of the place manager
         Thread t = (new Thread(() -> {
             try {
 
