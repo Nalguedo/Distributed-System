@@ -1,9 +1,8 @@
-import utils.Utils;
-
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 
@@ -11,10 +10,12 @@ import java.util.Scanner;
  * Client test class
  */
 public class Client {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
         FrontendInterface frontendInterface;
         PlacesListInterface placesListInterface;
         Place place;
+        String placeId;
+        ArrayList<Place> placeArrayList;
 
         System.out.println("Localizar Frontend...");
 
@@ -29,7 +30,7 @@ public class Client {
                     place = clientAddPlace();
                     try {
                         frontendInterface = (FrontendInterface) Naming.lookup("rmi://localhost:2000/frontend");
-                        frontendInterface.insertPlace(place.getPostalCode(), place.getLocality());
+                        frontendInterface.insertPlace(place.getPostalCode().trim(), place.getLocality().trim());
                     } catch (NotBoundException | RemoteException | MalformedURLException e) {
                         //e.printStackTrace();
                         System.out.println("System down!\n\nTry again...");
@@ -37,7 +38,7 @@ public class Client {
 
                     break;
                 case 2:
-                    String placeId = clientGetPlace();
+                    placeId = clientGetPlace();
                     try {
                         frontendInterface = (FrontendInterface) Naming.lookup("rmi://localhost:2000/frontend");
                         String serverURL = frontendInterface.requestServer();
@@ -54,42 +55,38 @@ public class Client {
                     }
                     break;
                 case 3:
+                    placeId = clientDeletePlace();
+                    try {
+                        frontendInterface = (FrontendInterface) Naming.lookup("rmi://localhost:2000/frontend");
+                        frontendInterface.removePlace(placeId);
+                    } catch (NotBoundException | RemoteException | MalformedURLException e) {
+                        //e.printStackTrace();
+                        System.out.println("System down!\n\nTry again...");
+                    }
                     break;
                 case 4:
-                    break;
-                case 5:
-                    Thread t = (new Thread(() -> {
-                        try {
-                            PlacesServer.main(new String[]{"3000"});
-                            System.out.println("Server starting...");
-                            Thread.sleep(1000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
+                    try {
+                        frontendInterface = (FrontendInterface) Naming.lookup("rmi://localhost:2000/frontend");
+                        String serverURL = frontendInterface.requestServer();
+                        placesListInterface = (PlacesListInterface) Naming.lookup(serverURL);
+
+                        placeArrayList = placesListInterface.allPlaces();
+                        if (placeArrayList != null) {
+                            System.out.println("List of all places:");
+                            for (Place p : placeArrayList) {
+                                System.out.println("Postalcode: " + p.getPostalCode() + "\tLocality: " + p.getLocality());
+                            }
                         }
-                    }));
-                    break;
-                case 0:
+                        else
+                            System.out.println("Not found!");
+                    } catch (NotBoundException | RemoteException | MalformedURLException e) {
+                        //e.printStackTrace();
+                        System.out.println("System down!\n\nTry again...");
+                    }
                     break;
                 default:
-
             }
         }
-        /*try {
-            //AddPlace
-            frontendInterface = (FrontendInterface) Naming.lookup("rmi://localhost:2000/frontend");
-            frontendInterface.insertPlace("3510", "Viseu");
-            //GetPlace
-            String serverURL = frontendInterface.requestServer();
-            placesListInterface = (PlacesListInterface) Naming.lookup(serverURL);
-
-            Place place = placesListInterface.getPlace("3510");
-
-            System.out.println("Result getPlace: " + place.getPostalCode() + " : " + place.getLocality());
-        } catch (NotBoundException | RemoteException | MalformedURLException e) {
-            //e.printStackTrace();
-            System.out.println("System down!\n\nTry again...");
-        }*/
-
     }
 
     public static int menu() {
@@ -97,13 +94,13 @@ public class Client {
         int selection;
         Scanner input = new Scanner(System.in);
 
+        System.out.println("\n\n");
         System.out.println("Choose option");
-        System.out.println("-------------------------\n");
+        System.out.println("-------------------------");
         System.out.println("1 - Add new place");
         System.out.println("2 - Get place");
         System.out.println("3 - Delete place");
         System.out.println("4 - Show all places");
-        System.out.println("5 - Star new Server");
         System.out.println("0 - Quit");
 
         selection = input.nextInt();
@@ -112,19 +109,18 @@ public class Client {
 
     public static Place clientAddPlace() {
 
-        String postalcode = "";
-        String locality = "";
+        String postalcode;
+        String locality;
 
         Scanner input = new Scanner(System.in);
 
 
         System.out.println("Add new place");
-        System.out.println("-------------------------\n");
+        System.out.println("-------------------------");
         System.out.println("Postal Code: ");
 
         postalcode = input.next();
 
-        System.out.println("\n");
         System.out.println("Locality: ");
 
         locality = input.next();
@@ -138,7 +134,19 @@ public class Client {
 
 
         System.out.println("Search Place");
-        System.out.println("-------------------------\n");
+        System.out.println("-------------------------");
+        System.out.println("Postal Code: ");
+
+        return input.next();
+    }
+
+    public static String clientDeletePlace() {
+
+        Scanner input = new Scanner(System.in);
+
+
+        System.out.println("Delete Place");
+        System.out.println("-------------------------");
         System.out.println("Postal Code: ");
 
         return input.next();

@@ -13,7 +13,6 @@ import static utils.Utils.rightPadding;
 
 
 public class CLogger {
-    private String NomeServer;
     private PrintWriter writer;
     private DateFormat dateFormat;
     private PrintStream FileStream;
@@ -26,7 +25,6 @@ public class CLogger {
      * @param NomeServer     Server name
      */
     public CLogger(String NomeServer) {
-        this.NomeServer = NomeServer;
         this.FilePath = "Logs/" + NomeServer + ".txt";
         CreateLogFile();
         Date obDate = new Date();
@@ -69,26 +67,26 @@ public class CLogger {
 
     /**
      *
+     * Add leader selection to log file
      *
-     *
-     * @param placeMngrID
-     * @param placeMngrLeader
+     * @param placeMngrID       Place Manager Id
+     * @param placeMngrLeader   Selected Leader
      */
     public void LeaderSelectionToLog(String placeMngrID,String placeMngrLeader) {
         Date obDate = new Date();
-        dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"); //Formato da data para aparecer no log
+        dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
         String Type= "| Type:Leader Selection";
         Type=  rightPadding(Type, 25);
         placeMngrLeader = rightPadding(placeMngrLeader,65);
-        String fileline = "|"+ dateFormat.format(obDate) + Type + "| " + placeMngrLeader +" |"; // Criação da 1 linha do Ficheiro
+        String fileline = "|"+ dateFormat.format(obDate) + Type + "| " + placeMngrLeader +" |";
         WriteToLog(fileline);
     }
 
     /**
      *
+     * Add KeepAlive messages to log
      *
-     *
-     * @param decompressedKeepAlive
+     * @param decompressedKeepAlive Message to log
      */
     public void keepAliveToLog(HashMap<String,String> decompressedKeepAlive) {
         Date obDate = new Date();

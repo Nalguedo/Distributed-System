@@ -30,8 +30,6 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
     private String placeMngrLeader = "noleader";
     //Frontend ID
     private String frontendID;
-    //PlaceManager Multicast Port
-    private int frontendPort;
     //System RMI Port
     private int sysRMIPort;
     //System IP Address
@@ -49,14 +47,14 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
         //Thread ID
         Thread threadID = Thread.currentThread();
         sysAddr = addr;
-        frontendPort = multicastPort;
+        //PlaceManager Multicast Port
         sysRMIPort = rmiPort;
-        frontendID = Utils.hashString(frontendPort, threadID).trim();
+        frontendID = Utils.hashString(multicastPort, threadID).trim();
 
         //Create multicast socket
         try {
             //bind socket to the port
-            MulticastSocket multicastSocket = new MulticastSocket(frontendPort);
+            MulticastSocket multicastSocket = new MulticastSocket(multicastPort);
             //join the group in the specified address
             multicastSocket.joinGroup(addr);
 
@@ -178,12 +176,15 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
     }
 
     @Override
-    public String requestServer() throws RemoteException {
+    public String requestServer() {
         Random randId = new Random();
+        int serverId;
 
-        int serverId = randId.nextInt(sysView.size());
-
-        return "rmi://localhost:" + sysRMIPort + "/" + sysView.get(serverId);
+        if (sysView.size() > 0) {
+            serverId = randId.nextInt(sysView.size());
+            return "rmi://localhost:" + sysRMIPort + "/" + sysView.get(serverId);
+        }
+        return null;
     }
 
 
@@ -200,12 +201,11 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
             setPlaceMngrLeader(max);
     }
 
-    private synchronized boolean sysViewSync() {
+    private synchronized void sysViewSync() {
         //check for new servers
         if (sysViewAux.size() > sysView.size()) {
             sysView.clear();
             sysView.addAll(sysViewAux);
-            return true;
         }
         //check if servers exited
         else {
@@ -213,11 +213,9 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
                 if (!sysViewAux.contains(sysServerId)) {
                     sysViewAux.clear();
                     sysViewAux.addAll(sysView);
-                    return true;
                 }
             }
         }
-        return false;
     }
 
     private synchronized void setPlaceMngrLeader(String placeMngrLeaderID) {

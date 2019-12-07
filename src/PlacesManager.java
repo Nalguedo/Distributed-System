@@ -249,22 +249,28 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     }
 
     @Override
-    public synchronized boolean addPlace(Place p) throws RemoteException {
-        if (!places.contains(p))
-            places.add(p);
-        //TODO messageCompressor implementation
-        sysSendMsg(multicastSocket, strKeepAlive + "&callmethod:addplace&params:locality," + p.getLocality() + ";postalcode," + p.getPostalCode());
+    public synchronized boolean addPlace(Place p) {
+        for (Place place : places) {
+            if (place.getPostalCode().trim().equals(p.getPostalCode().trim())) {
+                return false;
+            }
+        }
+        String msgAddPlace = strKeepAlive;
+        msgAddPlace = Utils.messageCompressor(msgAddPlace, "callmethod", "addplace", "&", ":");
+        msgAddPlace = Utils.messageCompressor(msgAddPlace, "params", "locality," + p.getLocality() + ";postalcode," + p.getPostalCode(), "&", ":");
+        sysSendMsg(multicastSocket, msgAddPlace);
+        //sysSendMsg(multicastSocket, strKeepAlive + "&callmethod:addplace&params:locality," + p.getLocality() + ";postalcode," + p.getPostalCode());
         System.out.println("\n\nNew Place Added: " + p.getLocality() + " : " + p.getPostalCode());
         return true;
     }
 
     @Override
-    public synchronized ArrayList<Place> allPlaces() throws RemoteException {
+    public synchronized ArrayList<Place> allPlaces() {
         return places;
     }
 
     @Override
-    public synchronized Place getPlace(String objectID) throws RemoteException {
+    public synchronized Place getPlace(String objectID) {
         for (Place place : places) {
             if (place.getPostalCode().equals(objectID)) {
                 return place;
@@ -274,7 +280,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     }
 
     @Override
-    public synchronized boolean removePlace(String objectID) throws RemoteException {
+    public synchronized boolean removePlace(String objectID) {
         for (Place place : places) {
             if (place.getPostalCode().equals(objectID)) {
                 places.remove(place);
@@ -309,12 +315,11 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         }
     }
 
-    private synchronized boolean sysViewSync() {
+    private synchronized void sysViewSync() {
         //check for new servers
         if (sysViewAux.size() > sysView.size()) {
             sysView.clear();
             sysView.addAll(sysViewAux);
-            return true;
         }
         //check if servers exited
         else {
@@ -322,11 +327,9 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                 if (!sysViewAux.contains(sysServerId)) {
                     sysViewAux.clear();
                     sysViewAux.addAll(sysView);
-                    return true;
                 }
             }
         }
-        return false;
     }
 
     private synchronized boolean sysViewChange() {
@@ -350,12 +353,12 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
      * @param methodName Method which will be invoked
      * @param params      String with all params split [addplace$3500,Viseu]
      */
-    private void callMethodByName(String methodName, String params) throws RemoteException {
+    private void callMethodByName(String methodName, String params) {
         HashMap<String,String> hashParams = Utils.messageDecompressor(params, ";", ",");
         Place newPlace;
         switch (methodName) {
             case "addplace":
-                newPlace = new Place(hashParams.get("postalcode"), hashParams.get("locality"));
+                newPlace = new Place(hashParams.get("postalcode").trim(), hashParams.get("locality").trim());
                 if (!places.contains(newPlace))
                     places.add(newPlace);
                 System.out.println("\n\nNew Place Added: " + newPlace.getLocality() + " : " + newPlace.getPostalCode() + "\nPlacemanager: " + placeMngrID);
