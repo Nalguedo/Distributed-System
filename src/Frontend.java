@@ -172,7 +172,7 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
         if (placesListInterface == null)
             return false;
 
-        return placesListInterface.removePlace(postalCode);
+        return placesListInterface.removePlace(postalCode.trim());
     }
 
     @Override

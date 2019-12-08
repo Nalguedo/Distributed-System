@@ -259,7 +259,6 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         msgAddPlace = Utils.messageCompressor(msgAddPlace, "callmethod", "addplace", "&", ":");
         msgAddPlace = Utils.messageCompressor(msgAddPlace, "params", "locality," + p.getLocality() + ";postalcode," + p.getPostalCode(), "&", ":");
         sysSendMsg(multicastSocket, msgAddPlace);
-        //sysSendMsg(multicastSocket, strKeepAlive + "&callmethod:addplace&params:locality," + p.getLocality() + ";postalcode," + p.getPostalCode());
         System.out.println("\n\nNew Place Added: " + p.getLocality() + " : " + p.getPostalCode());
         return true;
     }
@@ -282,8 +281,13 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     @Override
     public synchronized boolean removePlace(String objectID) {
         for (Place place : places) {
-            if (place.getPostalCode().equals(objectID)) {
+            if (place.getPostalCode().equals(objectID.trim())) {
                 places.remove(place);
+                String msgRemovePlace = strKeepAlive;
+                msgRemovePlace = Utils.messageCompressor(msgRemovePlace, "callmethod", "removeplace", "&", ":");
+                msgRemovePlace = Utils.messageCompressor(msgRemovePlace, "params", "postalcode," + objectID, "&", ":");
+                sysSendMsg(multicastSocket, msgRemovePlace);
+                System.out.println("\n\nPlace removed: " + objectID);
                 return true;
             }
         }
@@ -359,12 +363,24 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         switch (methodName) {
             case "addplace":
                 newPlace = new Place(hashParams.get("postalcode").trim(), hashParams.get("locality").trim());
-                if (!places.contains(newPlace))
-                    places.add(newPlace);
+                for (Place place : places) {
+                    if (place.getPostalCode().equals(hashParams.get("postalcode").trim())) {
+                        return;
+                    }
+                }
+                places.add(newPlace);
                 System.out.println("\n\nNew Place Added: " + newPlace.getLocality() + " : " + newPlace.getPostalCode() + "\nPlacemanager: " + placeMngrID);
                 break;
             case "removeplace":
-                removePlace(hashParams.get(methodName));
+                ArrayList<Place> placesAux = new ArrayList<>(places);
+                for (Place place : placesAux) {
+                    if (place.getPostalCode().equals(hashParams.get("postalcode"))) {
+                        placesAux.remove(place);
+                        places.clear();
+                        places.addAll(placesAux);
+                        System.out.println("\n\nPlace removed: " + hashParams.get("postalcode"));
+                    }
+                }
                 break;
             case "setallplaces":
                 places.clear();
