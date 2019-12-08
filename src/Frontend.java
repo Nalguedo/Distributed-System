@@ -12,8 +12,9 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
-public class Frontend extends UnicastRemoteObject implements PlacesListInterface {
+public class Frontend extends UnicastRemoteObject implements FrontendInterface {
     //Flags
     private boolean terminateFlag = false;
     private boolean sysChangeFlag = false;
@@ -29,25 +30,31 @@ public class Frontend extends UnicastRemoteObject implements PlacesListInterface
     private String placeMngrLeader = "noleader";
     //Frontend ID
     private String frontendID;
-    //PlaceManager Multicast Port
-    private int frontendPort;
     //System RMI Port
     private int sysRMIPort;
     //System IP Address
     private InetAddress sysAddr;
 
+    /**
+     * Frontend responsible class, assure communication between clients and system servers
+     *
+     * @param addr              Network multicast address
+     * @param multicastPort     Multicast Port
+     * @param rmiPort           Registry port
+     * @param LogFile           Server specific log
+     */
     Frontend(InetAddress addr, int multicastPort, int rmiPort, CLogger LogFile) throws RemoteException {
         //Thread ID
         Thread threadID = Thread.currentThread();
         sysAddr = addr;
-        frontendPort = multicastPort;
+        //PlaceManager Multicast Port
         sysRMIPort = rmiPort;
-        frontendID = Utils.hashString(frontendPort, threadID).trim();
+        frontendID = Utils.hashString(multicastPort, threadID).trim();
 
         //Create multicast socket
         try {
             //bind socket to the port
-            MulticastSocket multicastSocket = new MulticastSocket(frontendPort);
+            MulticastSocket multicastSocket = new MulticastSocket(multicastPort);
             //join the group in the specified address
             multicastSocket.joinGroup(addr);
 
@@ -148,34 +155,38 @@ public class Frontend extends UnicastRemoteObject implements PlacesListInterface
     }
 
     @Override
-    public void addPlace(Place p) throws RemoteException {
+    public boolean insertPlace(String postalCode, String locality) throws RemoteException {
+        Place newPlace = new Place(postalCode, locality);
         PlacesListInterface placesListInterface = getRemotePlaceMngr(placeMngrLeader);
-        if (placesListInterface != null) {
-            placesListInterface.addPlace(p);
+
+        if (placesListInterface == null)
+            return false;
+
+        return placesListInterface.addPlace(newPlace);
+    }
+
+    @Override
+    public boolean removePlace(String postalCode) throws RemoteException {
+        PlacesListInterface placesListInterface = getRemotePlaceMngr(placeMngrLeader);
+
+        if (placesListInterface == null)
+            return false;
+
+        return placesListInterface.removePlace(postalCode.trim());
+    }
+
+    @Override
+    public String requestServer() {
+        Random randId = new Random();
+        int serverId;
+
+        if (sysView.size() > 0) {
+            serverId = randId.nextInt(sysView.size());
+            return "rmi://localhost:" + sysRMIPort + "/" + sysView.get(serverId);
         }
+        return null;
     }
 
-    @Override
-    public ArrayList<Place> allPlaces() throws RemoteException {
-        PlacesListInterface placesListInterface = getRemotePlaceMngr(placeMngrLeader);
-        assert placesListInterface != null;
-        return placesListInterface.allPlaces();
-    }
-
-    @Override
-    public Place getPlace(String objectID) throws RemoteException {
-        //TODO ask random server for place
-        PlacesListInterface placesListInterface = getRemotePlaceMngr(placeMngrLeader);
-        assert placesListInterface != null;
-        return placesListInterface.getPlace(objectID);
-    }
-
-    @Override
-    public boolean removePlace(String objectID) throws RemoteException {
-        PlacesListInterface placesListInterface = getRemotePlaceMngr(placeMngrLeader);
-        assert placesListInterface != null;
-        return placesListInterface.removePlace(objectID);
-    }
 
     private synchronized void sysLeaderElection() {
         String max = "";
@@ -190,12 +201,11 @@ public class Frontend extends UnicastRemoteObject implements PlacesListInterface
             setPlaceMngrLeader(max);
     }
 
-    private synchronized boolean sysViewSync() {
+    private synchronized void sysViewSync() {
         //check for new servers
         if (sysViewAux.size() > sysView.size()) {
             sysView.clear();
             sysView.addAll(sysViewAux);
-            return true;
         }
         //check if servers exited
         else {
@@ -203,11 +213,9 @@ public class Frontend extends UnicastRemoteObject implements PlacesListInterface
                 if (!sysViewAux.contains(sysServerId)) {
                     sysViewAux.clear();
                     sysViewAux.addAll(sysView);
-                    return true;
                 }
             }
         }
-        return false;
     }
 
     private synchronized void setPlaceMngrLeader(String placeMngrLeaderID) {
@@ -229,4 +237,5 @@ public class Frontend extends UnicastRemoteObject implements PlacesListInterface
             return null;
         }
     }
+
 }

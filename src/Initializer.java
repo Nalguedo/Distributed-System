@@ -1,7 +1,19 @@
+import java.io.File;
+import java.util.Arrays;
+import java.util.Objects;
 
+/**
+ * Initialize Frontend server and x PlaceManager instances
+ *
+ * @version 1.1
+ *
+ */
 public class Initializer {
-    public static void main (String[] args) throws InterruptedException {
-        //Run X instances of the place manager
+    public static void main (String[] args) {
+
+        //Clear old log files
+        Arrays.stream(Objects.requireNonNull(new File("Logs/").listFiles())).forEach(File::delete);
+
         Thread t = (new Thread(() -> {
             try {
 

@@ -142,7 +142,18 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                     if (!sysViewChange() &&
                                             sysVotingBoard.size() == 1 &&
                                             sysVotingBoard.containsKey(placeMngrID)) {
-                                        sysSendMsg(multicastSocket, strKeepAlive + "&setleader:" + placeMngrID);
+                                        String msgSetLeader = strKeepAlive;
+                                        msgSetLeader = Utils.messageCompressor(msgSetLeader,"setleader", placeMngrID, "&", ":");
+                                        if (places.size() > 0) {
+                                            String allPlacesStr = "";
+                                            for (Place place : places) {
+                                                allPlacesStr = Utils.messageCompressor(allPlacesStr, "locality", place.getLocality(), ";", ",");
+                                                allPlacesStr = Utils.messageCompressor(allPlacesStr, "postalcode", place.getPostalCode(), ";", ",");
+                                            }
+                                            msgSetLeader = Utils.messageCompressor(msgSetLeader, "callmethod","setallplaces", "&", ":");
+                                            msgSetLeader = Utils.messageCompressor(msgSetLeader, "params", allPlacesStr, "&", ":");
+                                        }
+                                        sysSendMsg(multicastSocket, msgSetLeader.trim());
                                     }
                                     break;
                                 case "callmethod":
@@ -150,6 +161,9 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                     if (placeMngrLeader.equals(messagesAux.get("keepalive"))) {
                                         callMethodByName(messagesAux.get(type), messagesAux.get("params"));
                                     }
+                                    break;
+                                case "syncplaces":
+                                    // code block
                                     break;
                                 default:
                                     // code block
@@ -235,21 +249,27 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     }
 
     @Override
-    public synchronized void addPlace(Place p) throws RemoteException {
-        if (!places.contains(p))
-            places.add(p);
-        //TODO messageCompressor implementation
-        sysSendMsg(multicastSocket, strKeepAlive + "&callmethod:addplace&params:locality," + p.getLocality() + ";postalcode," + p.getPostalCode());
+    public synchronized boolean addPlace(Place p) {
+        for (Place place : places) {
+            if (place.getPostalCode().trim().equals(p.getPostalCode().trim())) {
+                return false;
+            }
+        }
+        String msgAddPlace = strKeepAlive;
+        msgAddPlace = Utils.messageCompressor(msgAddPlace, "callmethod", "addplace", "&", ":");
+        msgAddPlace = Utils.messageCompressor(msgAddPlace, "params", "locality," + p.getLocality() + ";postalcode," + p.getPostalCode(), "&", ":");
+        sysSendMsg(multicastSocket, msgAddPlace);
         System.out.println("\n\nNew Place Added: " + p.getLocality() + " : " + p.getPostalCode());
+        return true;
     }
 
     @Override
-    public synchronized ArrayList<Place> allPlaces() throws RemoteException {
+    public synchronized ArrayList<Place> allPlaces() {
         return places;
     }
 
     @Override
-    public synchronized Place getPlace(String objectID) throws RemoteException {
+    public synchronized Place getPlace(String objectID) {
         for (Place place : places) {
             if (place.getPostalCode().equals(objectID)) {
                 return place;
@@ -259,10 +279,15 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     }
 
     @Override
-    public synchronized boolean removePlace(String objectID) throws RemoteException {
+    public synchronized boolean removePlace(String objectID) {
         for (Place place : places) {
-            if (place.getPostalCode().equals(objectID)) {
+            if (place.getPostalCode().equals(objectID.trim())) {
                 places.remove(place);
+                String msgRemovePlace = strKeepAlive;
+                msgRemovePlace = Utils.messageCompressor(msgRemovePlace, "callmethod", "removeplace", "&", ":");
+                msgRemovePlace = Utils.messageCompressor(msgRemovePlace, "params", "postalcode," + objectID, "&", ":");
+                sysSendMsg(multicastSocket, msgRemovePlace);
+                System.out.println("\n\nPlace removed: " + objectID);
                 return true;
             }
         }
@@ -294,12 +319,11 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         }
     }
 
-    private synchronized boolean sysViewSync() {
+    private synchronized void sysViewSync() {
         //check for new servers
         if (sysViewAux.size() > sysView.size()) {
             sysView.clear();
             sysView.addAll(sysViewAux);
-            return true;
         }
         //check if servers exited
         else {
@@ -307,11 +331,9 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                 if (!sysViewAux.contains(sysServerId)) {
                     sysViewAux.clear();
                     sysViewAux.addAll(sysView);
-                    return true;
                 }
             }
         }
-        return false;
     }
 
     private synchronized boolean sysViewChange() {
@@ -335,27 +357,30 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
      * @param methodName Method which will be invoked
      * @param params      String with all params split [addplace$3500,Viseu]
      */
-    private void callMethodByName(String methodName, String params) throws RemoteException {
+    private void callMethodByName(String methodName, String params) {
         HashMap<String,String> hashParams = Utils.messageDecompressor(params, ";", ",");
         Place newPlace;
         switch (methodName) {
             case "addplace":
-                newPlace = new Place(hashParams.get("postalcode"), hashParams.get("locality"));
-                if (!places.contains(newPlace))
-                    places.add(newPlace);
+                newPlace = new Place(hashParams.get("postalcode").trim(), hashParams.get("locality").trim());
+                for (Place place : places) {
+                    if (place.getPostalCode().equals(hashParams.get("postalcode").trim())) {
+                        return;
+                    }
+                }
+                places.add(newPlace);
                 System.out.println("\n\nNew Place Added: " + newPlace.getLocality() + " : " + newPlace.getPostalCode() + "\nPlacemanager: " + placeMngrID);
                 break;
             case "removeplace":
-                removePlace(hashParams.get(methodName));
-                break;
-            case "getplace":
-                newPlace = getPlace(hashParams.get(methodName));
-                //TODO send RMI message with args or object serialized
-
-                break;
-            case "getallplaces":
-                //TODO send RMI message with args or object serialized
-
+                ArrayList<Place> placesAux = new ArrayList<>(places);
+                for (Place place : placesAux) {
+                    if (place.getPostalCode().equals(hashParams.get("postalcode"))) {
+                        placesAux.remove(place);
+                        places.clear();
+                        places.addAll(placesAux);
+                        System.out.println("\n\nPlace removed: " + hashParams.get("postalcode"));
+                    }
+                }
                 break;
             case "setallplaces":
                 places.clear();
@@ -369,7 +394,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         }
     }
 
-    private synchronized PlacesListInterface getRemotePlaceMngr(String remotePlaceMngrID) {
+    private synchronized PlacesListInterface getPlaceMngrRMI(String remotePlaceMngrID) {
         try {
             return (PlacesListInterface) Naming.lookup("rmi://localhost:" + sysRMIPort + "/" + remotePlaceMngrID);
         } catch (NotBoundException | MalformedURLException | RemoteException e) {
@@ -377,4 +402,5 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
             return null;
         }
     }
+
 }
