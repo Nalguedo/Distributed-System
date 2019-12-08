@@ -24,6 +24,9 @@ public class Initializer {
                     Thread.sleep(1000);
                 }
 
+                Thread.sleep(90000);
+                PlacesServer.main(new String[]{"3000"});
+
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
