@@ -14,13 +14,10 @@ public class Utils {
     /**
      * Create unique server id hash using given params and instant milli
      *
-     * @param placeMngrPort Port number
-     * @param threadID      Server main thread id
+     * @param stringToHash      String to hash
      * @return String           Hash ID using digest "SHA-256"
      */
-    public static String hashString(Integer placeMngrPort, Thread threadID) {
-        Instant instant = Instant.now();
-        String _id = String.valueOf(placeMngrPort) + threadID + instant.toEpochMilli();
+    public static String hashString(String stringToHash) {
         MessageDigest md = null;
         try {
             md = MessageDigest.getInstance("SHA-256");
@@ -28,7 +25,7 @@ public class Utils {
             e.printStackTrace();
         }
         assert md != null;
-        md.update(_id.getBytes());
+        md.update(stringToHash.getBytes());
         byte[] digest = md.digest();
 
         //Converting the byte array in to HexString format

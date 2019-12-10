@@ -25,7 +25,7 @@ public class CLogger {
      * @param NomeServer     Server name
      */
     public CLogger(String NomeServer) {
-        this.FilePath = "Logs/" + NomeServer + ".txt";
+        this.FilePath = "Logs/Log-" + NomeServer + ".txt";
         CreateLogFile();
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
@@ -72,7 +72,7 @@ public class CLogger {
      * @param placeMngrID       Place Manager Id
      * @param placeMngrLeader   Selected Leader
      */
-    public void LeaderSelectionToLog(String placeMngrID,String placeMngrLeader) {
+    public void LeaderSelectionToLog(String placeMngrID, String placeMngrLeader) {
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
         String Type= "| Type:Leader Selection";
@@ -98,6 +98,16 @@ public class CLogger {
         Type=  rightPadding(Type, 25);
         valueForFirstKey = rightPadding(valueForFirstKey,65);
         String fileline = "|"+ dateFormat.format(obDate) + Type + "| " + valueForFirstKey + " |";
+        WriteToLog(fileline);
+    }
+
+    public void newLogEntry(String postalCode, String locality, String operation, String registryHash) {
+        Date obDate = new Date();
+        dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        String Type= "| Operation:" + operation;
+        Type=  rightPadding(Type, 25);
+        String details = rightPadding("Postal Code: " + postalCode + " Locality: " + locality + " OpID: " + registryHash,95);
+        String fileline = "|"+ dateFormat.format(obDate) + Type + "| " + details +" |";
         WriteToLog(fileline);
     }
 

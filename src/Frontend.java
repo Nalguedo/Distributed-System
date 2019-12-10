@@ -10,6 +10,7 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -46,10 +47,11 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
     Frontend(InetAddress addr, int multicastPort, int rmiPort, CLogger LogFile) throws RemoteException {
         //Thread ID
         Thread threadID = Thread.currentThread();
+        Instant instant = Instant.now();
         sysAddr = addr;
         //PlaceManager Multicast Port
         sysRMIPort = rmiPort;
-        frontendID = Utils.hashString(multicastPort, threadID).trim();
+        frontendID = Utils.hashString(String.valueOf(multicastPort) + threadID + instant.toEpochMilli()).trim();
 
         //Create multicast socket
         try {

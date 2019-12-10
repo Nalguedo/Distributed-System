@@ -6,6 +6,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.net.InetAddress;
+import java.time.Instant;
 
 public class PlacesServer {
 
@@ -19,7 +20,8 @@ public class PlacesServer {
             InetAddress address = InetAddress.getByName("230.0.0.0");
             int multicastPort = 6789;
             int RMIPortSystem = 3000;
-            placeMngrID = Utils.hashString(multicastPort, threadID).trim();
+            Instant instant = Instant.now();
+            placeMngrID = Utils.hashString(String.valueOf(multicastPort) + threadID + instant.toEpochMilli()).trim();
             CLogger LogFile= new CLogger(placeMngrID);
             placeList = new PlacesManager(address, multicastPort, RMIPortSystem, placeMngrID,LogFile);
 

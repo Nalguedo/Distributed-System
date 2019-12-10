@@ -79,7 +79,7 @@ public class Client {
                         }
                         else
                             System.out.println("Not found!");
-                    } catch (NotBoundException | RemoteException | MalformedURLException e) {
+                    } catch (NotBoundException | RemoteException | MalformedURLException | NullPointerException e) {
                         //e.printStackTrace();
                         System.out.println("System down!\n\nTry again...");
                     }
