@@ -1,8 +1,10 @@
 package utils;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
 import java.util.HashMap;
 
 /**
@@ -86,4 +88,19 @@ public class Utils {
         return String.format("%1$-" + num + "s", str);
     }
 
+    /**
+     *
+     * Get ip address which is used to connect to internet
+     *
+     * @return      String corresponding to machine IP address removing "/" char
+     */
+    public static String getIpAddress() {
+        Socket socket = new Socket();
+        try {
+            socket.connect(new InetSocketAddress("google.com", 80));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return socket.getLocalAddress().toString().replace("/", "");
+    }
 }

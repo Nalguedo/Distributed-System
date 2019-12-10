@@ -33,22 +33,26 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
     private String frontendID;
     //System RMI Port
     private int sysRMIPort;
-    //System IP Address
+    //System IP Multicast Address
     private InetAddress sysAddr;
+    //System IP Address
+    private String sysIPAddr;
 
     /**
      * Frontend responsible class, assure communication between clients and system servers
      *
-     * @param addr              Network multicast address
+     * @param ipAddress         Server IP Address
+     * @param mcastAddr         Network multicast address
      * @param multicastPort     Multicast Port
      * @param rmiPort           Registry port
      * @param LogFile           Server specific log
      */
-    Frontend(InetAddress addr, int multicastPort, int rmiPort, CLogger LogFile) throws RemoteException {
+    Frontend(String ipAddress, InetAddress mcastAddr, int multicastPort, int rmiPort, CLogger LogFile) throws RemoteException {
         //Thread ID
         Thread threadID = Thread.currentThread();
         Instant instant = Instant.now();
-        sysAddr = addr;
+        sysAddr = mcastAddr;
+        sysIPAddr = ipAddress;
         //PlaceManager Multicast Port
         sysRMIPort = rmiPort;
         frontendID = Utils.hashString(String.valueOf(multicastPort) + threadID + instant.toEpochMilli()).trim();
@@ -58,7 +62,7 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
             //bind socket to the port
             MulticastSocket multicastSocket = new MulticastSocket(multicastPort);
             //join the group in the specified address
-            multicastSocket.joinGroup(addr);
+            multicastSocket.joinGroup(mcastAddr);
 
             //create a new thread to listen to other server's messages
             Thread threadListen = (new Thread(() -> {
@@ -156,6 +160,14 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
         }
     }
 
+    /**
+     *
+     * Remote call from clients to add new places, set new place will be called on Placemanager Leader
+     *
+     * @param postalCode        New place postal code
+     * @param locality          New locality
+     * @return                  True if success, false if no
+     */
     @Override
     public boolean insertPlace(String postalCode, String locality) throws RemoteException {
         Place newPlace = new Place(postalCode, locality);
@@ -184,7 +196,7 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
 
         if (sysView.size() > 0) {
             serverId = randId.nextInt(sysView.size());
-            return "rmi://localhost:" + sysRMIPort + "/" + sysView.get(serverId);
+            return "rmi://" + sysIPAddr + ":" + sysRMIPort + "/" + sysView.get(serverId);
         }
         return null;
     }
@@ -233,7 +245,7 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
 
     private synchronized PlacesListInterface getRemotePlaceMngr(String remotePlaceMngrID) {
         try {
-            return (PlacesListInterface) Naming.lookup("rmi://localhost:" + sysRMIPort + "/" + remotePlaceMngrID);
+            return (PlacesListInterface) Naming.lookup("rmi://" + sysIPAddr + ":" + sysRMIPort + "/" + remotePlaceMngrID);
         } catch (NotBoundException | MalformedURLException | RemoteException e) {
             e.printStackTrace();
             return null;

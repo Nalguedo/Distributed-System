@@ -1,4 +1,5 @@
 import utils.CLogger;
+import utils.Utils;
 
 import java.net.UnknownHostException;
 import java.rmi.RemoteException;
@@ -12,15 +13,18 @@ public class FrontendServer {
         Registry clientRegistry;
         Registry sysRegistry;
         Frontend frontend;
+        String ipAddress = Utils.getIpAddress();
+        System.setProperty("java.rmi.server.hostname", ipAddress);
+        System.out.println("--------------------------------------------------------------\n\nINFORMATION: Set this IP Address on client - " + ipAddress + "\n\n--------------------------------------------------------------");
 
         try{
-            InetAddress address = InetAddress.getByName("230.0.0.0");
+            InetAddress multicastAddress = InetAddress.getByName("230.0.0.0");
             int multicastPort = 6789;
-            int RMIPortClient = 2000;
+            int RMIPortClient = 1099;
             int RMIPortSystem = 3000;
             CLogger LogFile= new CLogger("Frontend");
 
-            frontend = new Frontend(address, multicastPort, RMIPortSystem, LogFile);
+            frontend = new Frontend(ipAddress, multicastAddress, multicastPort, RMIPortSystem, LogFile);
 
             //Create RMI reachable by clients
             clientRegistry = LocateRegistry.createRegistry(RMIPortClient);
@@ -29,6 +33,7 @@ public class FrontendServer {
             //Create RMI system registry
             sysRegistry = LocateRegistry.createRegistry(RMIPortSystem);
             sysRegistry.rebind("frontend", frontend );
+
         }
         catch(RemoteException | UnknownHostException e) {
             System.out.println("Frontend server " + args[0] + " main " + e.getMessage());

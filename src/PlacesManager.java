@@ -45,8 +45,10 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     private int placeMngrPort;
     //System RMI Port
     private int sysRMIPort;
-    //System IP Address
+    //System IP Multicast Address
     private InetAddress sysAddr;
+    //System IP Address
+    private String sysIPAddr;
     //Multicast Socket
     private MulticastSocket multicastSocket;
     //Append Log
@@ -56,17 +58,20 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
      *
      * PlacesManager Constructor - Creates 2 threads (ThreadListen and ThreadSend) for multicast communication
      *
-     * @param addr              Multicast IP address
+     *
+     * @param ipAddress         Server IP Address
+     * @param mcastAddr         Multicast IP address
      * @param multicastPort     System Multicast Port
      * @param rmiPort           System RMI Port
      * @param placeMID          PlaceManager ID unique hash [Utils.hashString(Integer placeMngrPort, Thread threadID)]
      * @param LogFile           CLogger object to store custom log messages
      * @throws RemoteException  Remote exception
      */
-    PlacesManager(InetAddress addr, int multicastPort, int rmiPort, String placeMID, CLogger LogFile) throws RemoteException {
+    PlacesManager(String ipAddress, InetAddress mcastAddr, int multicastPort, int rmiPort, String placeMID, CLogger LogFile) throws RemoteException {
         //Thread ID
         Thread threadID = Thread.currentThread();
-        sysAddr = addr;
+        sysIPAddr = ipAddress;
+        sysAddr = mcastAddr;
         placeMngrPort = multicastPort;
         sysRMIPort = rmiPort;
         placeMngrID = placeMID;
@@ -81,9 +86,9 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
             //bind socket to the port
             multicastSocket = new MulticastSocket(multicastPort);
             //join the group in the specified address
-            multicastSocket.joinGroup(addr);
+            multicastSocket.joinGroup(mcastAddr);
             //create a new datagram packet
-            DatagramPacket msg = new DatagramPacket(strHello.getBytes(), strHello.getBytes().length, addr, multicastPort);
+            DatagramPacket msg = new DatagramPacket(strHello.getBytes(), strHello.getBytes().length, mcastAddr, multicastPort);
             try {
                 //send the datagram packet
                 multicastSocket.send(msg);
@@ -504,7 +509,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
 
     private synchronized PlacesListInterface getPlaceMngrRMI(String remotePlaceMngrID) {
         try {
-            return (PlacesListInterface) Naming.lookup("rmi://localhost:" + sysRMIPort + "/" + remotePlaceMngrID);
+            return (PlacesListInterface) Naming.lookup("rmi://" + sysIPAddr + ":" + sysRMIPort + "/" + remotePlaceMngrID);
         } catch (NotBoundException | MalformedURLException | RemoteException e) {
             e.printStackTrace();
             return null;
