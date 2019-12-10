@@ -29,7 +29,7 @@ public class CLogger {
         CreateLogFile();
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-        String fileline = "------------------------------------------File created at: "+ dateFormat.format(obDate) + " | Server:" + NomeServer + "------------------------------------------"; // Criação da 1 linha do Ficheiro
+        String fileline = "--------------------File created at: "+ dateFormat.format(obDate) + " | Server:" + NomeServer + "-------------------";
 
         try {
             FileStream = new PrintStream(new File(FilePath));
@@ -104,10 +104,11 @@ public class CLogger {
     public void newLogEntry(String postalCode, String locality, String operation, String registryHash) {
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-        String Type= "| Operation:" + operation;
+        String Type= "| Operation: " + operation;
         Type=  rightPadding(Type, 25);
-        String details = rightPadding("Postal Code: " + postalCode + " Locality: " + locality + " OpID: " + registryHash,95);
-        String fileline = "|"+ dateFormat.format(obDate) + Type + "| " + details +" |";
+        String details = rightPadding("Postal Code: " + postalCode + " Locality: " + locality,40);
+        String details1 = rightPadding(" OpID: " + registryHash,70);
+        String fileline = "|"+ dateFormat.format(obDate) + Type + "| " + details +" |" + details1 +" |";
         WriteToLog(fileline);
     }
 

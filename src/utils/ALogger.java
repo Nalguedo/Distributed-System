@@ -15,13 +15,26 @@ public class ALogger {
         cLogger = new CLogger("Append-" + NomeServer);
     }
 
+    /**
+     *
+     * Add new entry to Append log file
+     *
+     * @param postalCode    Postal code
+     * @param locality      Locality
+     * @param operation     Operation type
+     */
     public synchronized void newEntry(String postalCode, String locality, String operation) {
-        int logSize = historyLog.size();
         String registryID = Utils.hashString(postalCode + locality + operation).trim();
         historyLog.add(registryID);
         cLogger.newLogEntry(postalCode, locality, operation, registryID);
     }
 
+    /**
+     *
+     * Get last Append log entry
+     *
+     * @return      String - entry hash id
+     */
     public synchronized String getLastEntry() {
         if (historyLog.size() == 0) {
             return "empty";
@@ -31,6 +44,13 @@ public class ALogger {
         }
     }
 
+
+    /**
+     *
+     * Get full list of append log entries
+     *
+     * @return      Arraylist containing full list of append log entries
+     */
     public synchronized ArrayList<String> getALogger() {
         return historyLog;
     }
