@@ -19,6 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * PlacesManager contains all places objects, and communications threads tha will keep the DistributedSystem updated and working
  */
 public class PlacesManager extends UnicastRemoteObject implements PlacesListInterface {
+    private static final long serialVersionUID = 1L;
     //Flags
     private boolean terminateFlag = false;
     private boolean votingFlag = false;

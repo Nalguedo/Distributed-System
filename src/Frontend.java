@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Random;
 
 public class Frontend extends UnicastRemoteObject implements FrontendInterface {
+    private static final long serialVersionUID = 1L;
     //Flags
     private boolean terminateFlag = false;
     private boolean sysChangeFlag = false;
@@ -25,8 +26,6 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
     private ArrayList<String> sysView = new ArrayList<>();
     //Auxiliary HashMap - <hashID, Leader>
     private ArrayList<String> sysViewAux = new ArrayList<>();
-    //Candidate ID
-    private String placeMngrLeaderCandidate;
     //Leader ID
     private String placeMngrLeader = "noleader";
     //Frontend ID

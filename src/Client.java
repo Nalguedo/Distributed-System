@@ -13,7 +13,7 @@ public class Client {
     public static void main(String[] args) {
         FrontendInterface frontendInterface;
         PlacesListInterface placesListInterface;
-        String frontendIPAddress = "192.168.0.100";
+        String frontendIPAddress = "192.168.1.89";
         System.setProperty("java.rmi.server.hostname", frontendIPAddress);
         String rmiPort = "1099";
         Place place;

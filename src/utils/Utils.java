@@ -96,11 +96,14 @@ public class Utils {
      */
     public static String getIpAddress() {
         Socket socket = new Socket();
+        String ipAddr = null;
         try {
             socket.connect(new InetSocketAddress("google.com", 80));
+            ipAddr = socket.getLocalAddress().toString().replace("/", "");
+            socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return socket.getLocalAddress().toString().replace("/", "");
+        return ipAddr;
     }
 }
