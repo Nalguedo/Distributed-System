@@ -508,6 +508,11 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         }
     }
 
+    /**
+     * RMI placeManager naming lookup
+     * @param remotePlaceMngrID     Server ID Hash
+     * @return                      RMI address
+     */
     private synchronized PlacesListInterface getPlaceMngrRMI(String remotePlaceMngrID) {
         try {
             return (PlacesListInterface) Naming.lookup("rmi://" + sysIPAddr + ":" + sysRMIPort + "/" + remotePlaceMngrID);

@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -103,6 +102,13 @@ public class CLogger {
         WriteToLog(fileline);
     }
 
+    /**
+     * Add Log Entry operation
+     * @param postalCode    Postal Code
+     * @param locality      Locality
+     * @param operation     Operation type
+     * @param registryHash  Entry Hash
+     */
     public void newLogEntry(String postalCode, String locality, String operation, String registryHash) {
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
@@ -110,8 +116,8 @@ public class CLogger {
         Type=  rightPadding(Type, 25);
         String details = rightPadding("Postal Code: " + postalCode + " Locality: " + locality,40);
         String details1 = rightPadding(" OpID: " + registryHash,70);
-        String fileline = "|"+ dateFormat.format(obDate) + Type + "| " + details +" |" + details1 +" |";
-        WriteToLog(fileline);
+        String fileLine = "|"+ dateFormat.format(obDate) + Type + "| " + details +" |" + details1 +" |";
+        WriteToLog(fileLine);
     }
 
     /**

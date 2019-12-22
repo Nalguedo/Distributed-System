@@ -107,8 +107,11 @@ public class Utils {
         return ipAddr;
     }
 
+    /**
+     * Get current project directory
+     * @return      Path String
+     */
     public static String CurrDirectory() {
-
         return System.getProperty("user.dir");
     }
 }

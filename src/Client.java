@@ -8,6 +8,7 @@ import java.util.Scanner;
 
 /**
  * Client test class
+ *
  */
 public class Client {
     public static void main(String[] args) {

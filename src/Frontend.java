@@ -178,6 +178,11 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
         return placesListInterface.addPlace(newPlace);
     }
 
+    /**
+     * Leader RMI removePlace call
+     * @param postalCode    Postal Code
+     * @return              True if remove is successful, no if it's not
+     */
     @Override
     public boolean removePlace(String postalCode) throws RemoteException {
         PlacesListInterface placesListInterface = getRemotePlaceMngr(placeMngrLeader);
@@ -188,6 +193,10 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
         return placesListInterface.removePlace(postalCode.trim());
     }
 
+    /**
+     * Request random server RMI address
+     * @return  RMI address
+     */
     @Override
     public String requestServer() {
         Random randId = new Random();
@@ -200,7 +209,10 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
         return null;
     }
 
-
+    /**
+     *
+     * System Leader election - highest ID hash on sysViewAux (fresh sysView) will be considered the System Leader Candidate
+     */
     private synchronized void sysLeaderElection() {
         String max = "";
 
@@ -214,6 +226,11 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
             setPlaceMngrLeader(max);
     }
 
+    /**
+     *
+     * Compare sysView with sysViewAux which is cleared every 2 cycles to check if servers stopped responding or new connections occurred
+     * Update sysView or sysViewAux accordingly
+     */
     private synchronized void sysViewSync() {
         //check for new servers
         if (sysViewAux.size() > sysView.size()) {
@@ -231,10 +248,22 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
         }
     }
 
+    /**
+     *
+     * Synchronized method change placeManager Leader
+     *
+     * @param placeMngrLeaderID     New placeManager ID
+     */
     private synchronized void setPlaceMngrLeader(String placeMngrLeaderID) {
         placeMngrLeader = placeMngrLeaderID.trim();
     }
 
+    /**
+     *
+     * Synchronized method to add new server id to sysViewAux
+     *
+     * @param id    Server ID
+     */
     private synchronized void addSysViewAux(String id) {
         String idTrimmed = id.trim();
         if (!sysViewAux.contains(idTrimmed)) {
@@ -242,6 +271,11 @@ public class Frontend extends UnicastRemoteObject implements FrontendInterface {
         }
     }
 
+    /**
+     * RMI naming lookup
+     * @param remotePlaceMngrID     Server ID Hash
+     * @return                      RMI address
+     */
     private synchronized PlacesListInterface getRemotePlaceMngr(String remotePlaceMngrID) {
         try {
             return (PlacesListInterface) Naming.lookup("rmi://" + sysIPAddr + ":" + sysRMIPort + "/" + remotePlaceMngrID);
