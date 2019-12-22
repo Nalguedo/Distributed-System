@@ -1,3 +1,4 @@
+import utils.ALogger;
 import utils.Utils;
 import utils.CLogger;
 
@@ -11,8 +12,14 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ *
+ * PlacesManager contains all places objects, and communications threads tha will keep the DistributedSystem updated and working
+ */
 public class PlacesManager extends UnicastRemoteObject implements PlacesListInterface {
+    private static final long serialVersionUID = 1L;
     //Flags
     private boolean terminateFlag = false;
     private boolean votingFlag = false;
@@ -20,6 +27,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     private int votes = 0;
     //Message types
     private String strKeepAlive;
+    private String msgSetLeader;
     //List of places
     private ArrayList<Place> places = new ArrayList<>();
     //System View HashMap - <hashID, Leader>
@@ -38,15 +46,33 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     private int placeMngrPort;
     //System RMI Port
     private int sysRMIPort;
-    //System IP Address
+    //System IP Multicast Address
     private InetAddress sysAddr;
+    //System IP Address
+    private String sysIPAddr;
     //Multicast Socket
     private MulticastSocket multicastSocket;
+    //Append Log
+    private ALogger aLogger;
 
-    PlacesManager(InetAddress addr, int multicastPort, int rmiPort, String placeMID, CLogger LogFile) throws RemoteException {
+    /**
+     *
+     * PlacesManager Constructor - Creates 2 threads (ThreadListen and ThreadSend) for multicast communication
+     *
+     *
+     * @param ipAddress         Server IP Address
+     * @param mcastAddr         Multicast IP address
+     * @param multicastPort     System Multicast Port
+     * @param rmiPort           System RMI Port
+     * @param placeMID          PlaceManager ID unique hash [Utils.hashString(Integer placeMngrPort, Thread threadID)]
+     * @param LogFile           CLogger object to store custom log messages
+     * @throws RemoteException  Remote exception
+     */
+    PlacesManager(String ipAddress, InetAddress mcastAddr, int multicastPort, int rmiPort, String placeMID, CLogger LogFile) throws RemoteException {
         //Thread ID
         Thread threadID = Thread.currentThread();
-        sysAddr = addr;
+        sysIPAddr = ipAddress;
+        sysAddr = mcastAddr;
         placeMngrPort = multicastPort;
         sysRMIPort = rmiPort;
         placeMngrID = placeMID;
@@ -54,15 +80,16 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         //Type of Messages
         String strHello = "hello:" + placeMngrID;
         strKeepAlive = "keepalive:" + placeMngrID;
+        aLogger = new ALogger(placeMID);
 
         //First message sending - Server announce
         try {
             //bind socket to the port
             multicastSocket = new MulticastSocket(multicastPort);
             //join the group in the specified address
-            multicastSocket.joinGroup(addr);
+            multicastSocket.joinGroup(mcastAddr);
             //create a new datagram packet
-            DatagramPacket msg = new DatagramPacket(strHello.getBytes(), strHello.getBytes().length, addr, multicastPort);
+            DatagramPacket msg = new DatagramPacket(strHello.getBytes(), strHello.getBytes().length, mcastAddr, multicastPort);
             try {
                 //send the datagram packet
                 multicastSocket.send(msg);
@@ -74,10 +101,10 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
             Thread threadListen = (new Thread(() -> {
 
                 //Hash that will receive the decompressed message Type : Value
-                HashMap<String,String> messages;
-                HashMap<String,String> messagesAux = new HashMap<>();
+                HashMap<String, String> messages;
+                HashMap<String, String> messagesAux = new HashMap<>();
 
-                while(!terminateFlag) {
+                while (!terminateFlag) {
                     byte[] buffer = new byte[1000];
                     //create a packet to receive the message
                     DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
@@ -94,19 +121,41 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                         //For each type in the Hash, evaluate and execute the different actions
                         for (String type : messages.keySet()) {
 
-                            switch(type) {
+                            switch (type) {
                                 case "keepalive":
                                     //Store received Placemanager ID
                                     addSysViewAux(messages.get(type));
+                                    break;
+                                case "alogger":
+                                    if (!messagesAux.get(type).trim().equals(aLogger.getLastEntry()) &&
+                                            messagesAux.get("keepalive").equals(placeMngrLeader)) {
+                                        PlacesListInterface placesListInterface = getPlaceMngrRMI(placeMngrLeader);
+                                        assert placesListInterface != null;
+                                        places = placesListInterface.allPlaces();
+                                        //aLogger = new ALogger(placeMngrID);
+                                        for (Place place : places) {
+                                            aLogger.newEntry(place.getPostalCode(), place.getLocality(), "addplace");
+                                        }
+                                    }
                                     break;
                                 case "hello":
                                     if (messagesAux.get(type).trim().equals(placeMngrID.trim()))
                                         break;
                                     //Store received Placemanager ID
                                     addSysViewAux(messagesAux.get(type));
-                                    //New PlaceManager announced - reply with keepAlive and current Leader if exists
-                                    if (placeMngrLeader.equals(placeMngrID)) {
-                                        sysSendMsg(multicastSocket, strKeepAlive + "&setleader:" + placeMngrID);
+                                    //New PlaceManager announced - reply with keepAlive, current Leader if exists and set all places
+                                    msgSetLeader = strKeepAlive;
+                                    msgSetLeader = Utils.messageCompressor(msgSetLeader, "setleader", placeMngrID, "&", ":");
+                                    if (placeMngrID.equals(placeMngrLeader)) {
+                                        if (places.size() > 0) {
+                                            String allPlacesStr = "";
+                                            for (Place place : places) {
+                                                allPlacesStr = Utils.messageCompressor(allPlacesStr, place.getPostalCode(), place.getLocality(), ";", ",");
+                                            }
+                                            msgSetLeader = Utils.messageCompressor(msgSetLeader, "callmethod", "setallplaces", "&", ":");
+                                            msgSetLeader = Utils.messageCompressor(msgSetLeader, "params", allPlacesStr, "&", ":");
+                                        }
+                                        sysSendMsg(multicastSocket, msgSetLeader.trim());
                                     }
                                     break;
                                 case "setleader":
@@ -116,7 +165,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                     sysVotingBoard.clear();
                                     break;
                                 case "startvote":
-                                    if(votes == 0 && sysView.size() > 0) {
+                                    if (votes == 0 && sysView.size() > 0) {
                                         votingFlag = true;
                                         sysSendMsg(multicastSocket, strKeepAlive + "&voteleader:" + placeMngrLeaderCandidate);
                                     }
@@ -128,12 +177,11 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                     //Store received Placemanager ID
                                     addSysViewAux(messages.get("keepalive"));
                                     //count vote
-                                    if (sysVotingBoard.containsKey(messages.get(type))){
+                                    if (sysVotingBoard.containsKey(messages.get(type))) {
                                         ArrayList<String> auxVoters = sysVotingBoard.get(messages.get(type));
                                         auxVoters.add(messages.get("keepalive").trim());
                                         sysVotingBoard.put(messages.get(type).trim(), auxVoters);
-                                    }
-                                    else {
+                                    } else {
                                         ArrayList<String> auxVoters = new ArrayList<>();
                                         auxVoters.add(messages.get("keepalive"));
                                         sysVotingBoard.put(messages.get(type).trim(), auxVoters);
@@ -142,23 +190,14 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                                     if (!sysViewChange() &&
                                             sysVotingBoard.size() == 1 &&
                                             sysVotingBoard.containsKey(placeMngrID)) {
-                                        String msgSetLeader = strKeepAlive;
-                                        msgSetLeader = Utils.messageCompressor(msgSetLeader,"setleader", placeMngrID, "&", ":");
-                                        if (places.size() > 0) {
-                                            String allPlacesStr = "";
-                                            for (Place place : places) {
-                                                allPlacesStr = Utils.messageCompressor(allPlacesStr, "locality", place.getLocality(), ";", ",");
-                                                allPlacesStr = Utils.messageCompressor(allPlacesStr, "postalcode", place.getPostalCode(), ";", ",");
-                                            }
-                                            msgSetLeader = Utils.messageCompressor(msgSetLeader, "callmethod","setallplaces", "&", ":");
-                                            msgSetLeader = Utils.messageCompressor(msgSetLeader, "params", allPlacesStr, "&", ":");
-                                        }
+                                        msgSetLeader = strKeepAlive;
+                                        msgSetLeader = Utils.messageCompressor(msgSetLeader, "setleader", placeMngrID, "&", ":");
                                         sysSendMsg(multicastSocket, msgSetLeader.trim());
                                     }
                                     break;
                                 case "callmethod":
                                     //Server
-                                    if (placeMngrLeader.equals(messagesAux.get("keepalive"))) {
+                                    if (placeMngrLeader.equals(messagesAux.get("keepalive")) && !placeMngrID.equals(placeMngrLeader)) {
                                         callMethodByName(messagesAux.get(type), messagesAux.get("params"));
                                     }
                                     break;
@@ -170,8 +209,8 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                             }
                         }
 
-                        System.out.println("S: " + sysView.size() +  " Reply: " + received.trim() + " Who Received: " + placeMngrID);
-                        HashMap<String,String> decompressedKeepAlive = Utils.messageDecompressor(received.trim(), "&", ":");
+                        System.out.println("S: " + sysView.size() + " Reply: " + received.trim() + " Who Received: " + placeMngrID);
+                        HashMap<String, String> decompressedKeepAlive = Utils.messageDecompressor(received.trim(), "&", ":");
                         LogFile.keepAliveToLog(decompressedKeepAlive);
 
                     } catch (IOException e) {
@@ -183,20 +222,19 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                     multicastSocket.leaveGroup(sysAddr);
                     multicastSocket.close();
                     System.out.println("EXIT----------------------------------------------" + placeMngrID);
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }));
             threadListen.start();
 
             //Only main thread will send messages
-            if(threadID == Thread.currentThread()) {
+            if (threadID == Thread.currentThread()) {
                 try {
                     //Setup time wait
                     Thread.sleep(2000);
                     //If no setLeader received on first run ... you're the leader
-                    if(placeMngrLeader.equals("noleader")) {
+                    if (placeMngrLeader.equals("noleader")) {
                         sysLeaderElection();
                         placeMngrLeader = placeMngrLeaderCandidate;
                         System.out.println("Placemanager id:" + placeMngrID + "\nSelected Lider:" + placeMngrLeader);
@@ -215,7 +253,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                             e.printStackTrace();
                         }
                         //if current leader is no longer the candidate
-                        if(placeMngrID.trim().equals(placeMngrLeader.trim()) && !placeMngrID.trim().equals(placeMngrLeaderCandidate.trim())) {
+                        if (placeMngrID.trim().equals(placeMngrLeader.trim()) && !placeMngrID.trim().equals(placeMngrLeaderCandidate.trim())) {
                             //terminateFlag = true; //test leader exits
                             sysSendMsg(multicastSocket, strKeepAlive + "&startvote:" + placeMngrLeaderCandidate);
                         } //if leader exits
@@ -230,24 +268,34 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                         if (!sysChangeFlag) {
                             sysViewSync();
                             //if (placeMngrID.contains("ee"))
-                                //terminateFlag = true; //test random exit
-                        }
-                        else {
+                            //terminateFlag = true; //test random exit
+                        } else {
                             sysViewAux.clear();
                         }
 
-                        sysSendMsg(multicastSocket, strKeepAlive);
+                        //Leader shares last entry hash
+                        if (placeMngrID.equals(placeMngrLeader))
+                            sysSendMsg(multicastSocket, Utils.messageCompressor(strKeepAlive, "alogger", aLogger.getLastEntry(), "&", ":"));
+                        else
+                            sysSendMsg(multicastSocket, strKeepAlive);
+
                         System.out.println("\n\nPlacemanager id:" + placeMngrID + "\nSelected Lider:" + placeMngrLeader);
                     }
                 }));
                 threadSend.start();
             }
-        }
-        catch(IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     *
+     * addPlace Override - Calling addPlace on Leader will add place to the list of places a send a multicast message for replication
+     *
+     * @param p     Place to add
+     * @return      Boolean for success
+     */
     @Override
     public synchronized boolean addPlace(Place p) {
         for (Place place : places) {
@@ -255,19 +303,34 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                 return false;
             }
         }
+        places.add(p);
         String msgAddPlace = strKeepAlive;
         msgAddPlace = Utils.messageCompressor(msgAddPlace, "callmethod", "addplace", "&", ":");
         msgAddPlace = Utils.messageCompressor(msgAddPlace, "params", "locality," + p.getLocality() + ";postalcode," + p.getPostalCode(), "&", ":");
         sysSendMsg(multicastSocket, msgAddPlace);
+        aLogger.newEntry(p.getPostalCode(), p.getLocality(), "addplace");
         System.out.println("\n\nNew Place Added: " + p.getLocality() + " : " + p.getPostalCode());
         return true;
     }
 
+    /**
+     *
+     * Get current list of all places
+     *
+     * @return      Arraylist containing list of all places
+     */
     @Override
     public synchronized ArrayList<Place> allPlaces() {
         return places;
     }
 
+    /**
+     *
+     * Get a specific place giving postalCode (objectID)
+     *
+     * @param objectID      Place ID corresponds to postalCode
+     * @return              Place with postalcode == objectID if exists or null if don't exists
+     */
     @Override
     public synchronized Place getPlace(String objectID) {
         for (Place place : places) {
@@ -278,6 +341,13 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         return null;
     }
 
+    /**
+     *
+     * Remove a specific place giving postalCode (objectID)
+     *
+     * @param objectID      Place ID corresponds to postalCode
+     * @return              True if deletion succeeds, false if it don't
+     */
     @Override
     public synchronized boolean removePlace(String objectID) {
         for (Place place : places) {
@@ -287,19 +357,29 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                 msgRemovePlace = Utils.messageCompressor(msgRemovePlace, "callmethod", "removeplace", "&", ":");
                 msgRemovePlace = Utils.messageCompressor(msgRemovePlace, "params", "postalcode," + objectID, "&", ":");
                 sysSendMsg(multicastSocket, msgRemovePlace);
-                System.out.println("\n\nPlace removed: " + objectID);
+                aLogger.newEntry(place.getPostalCode(), place.getLocality(), "removeplace");
+                //System.out.println("\n\nPlace removed: " + objectID);
                 return true;
             }
         }
         return false;
     }
 
+    @Override
+    public ArrayList<String> getALogger() throws RemoteException {
+        return aLogger.getALogger();
+    }
+
+    /**
+     *
+     * System Leader election - highest ID hash on sysViewAux (fresh sysView) will be considered the System Leader Candidate
+     */
     private synchronized void sysLeaderElection() {
         String max = "";
 
-        for(String entry : sysViewAux) {
+        for (String entry : sysViewAux) {
             if (entry.compareTo(max) > 0) {
-                max = entry ;
+                max = entry;
             }
         }
         //Set highest hash as leader candidate
@@ -309,6 +389,13 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
             placeMngrLeaderCandidate = placeMngrID;
     }
 
+    /**
+     *
+     * Send multicast message using given socket and message
+     *
+     * @param multicastSocket      Multicast socket previously created
+     * @param message              String message to send
+     */
     private synchronized void sysSendMsg(MulticastSocket multicastSocket, String message) {
         DatagramPacket msgDatagram = new DatagramPacket(message.getBytes(), message.getBytes().length, sysAddr, placeMngrPort);
         try {
@@ -319,6 +406,11 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         }
     }
 
+    /**
+     *
+     * Compare sysView with sysViewAux which is cleared every 2 cycles to check if servers stopped responding or new connections occurred
+     * Update sysView or sysViewAux accordingly
+     */
     private synchronized void sysViewSync() {
         //check for new servers
         if (sysViewAux.size() > sysView.size()) {
@@ -336,14 +428,32 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
         }
     }
 
+    /**
+     *
+     * Fast method to check if new servers connected
+     *
+     * @return      true if sizes changed, false if not
+     */
     private synchronized boolean sysViewChange() {
         return sysViewAux.size() != sysView.size();
     }
 
+    /**
+     *
+     * Synchronized method change placeManager Leader
+     *
+     * @param placeMngrLeaderID     New placeManager ID
+     */
     private synchronized void setPlaceMngrLeader(String placeMngrLeaderID) {
         placeMngrLeader = placeMngrLeaderID.trim();
     }
 
+    /**
+     *
+     * Synchronized method to add new server id to sysViewAux
+     *
+     * @param id    Server ID
+     */
     private synchronized void addSysViewAux(String id) {
         String idTrimmed = id.trim();
         if (!sysViewAux.contains(idTrimmed)) {
@@ -355,10 +465,10 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
      * Call placesManager methods and reply requests or set places
      *
      * @param methodName Method which will be invoked
-     * @param params      String with all params split [addplace$3500,Viseu]
+     * @param params     String with all params split [addplace$3500,Viseu]
      */
-    private void callMethodByName(String methodName, String params) {
-        HashMap<String,String> hashParams = Utils.messageDecompressor(params, ";", ",");
+    private synchronized void callMethodByName(String methodName, String params) {
+        HashMap<String, String> hashParams = Utils.messageDecompressor(params, ";", ",");
         Place newPlace;
         switch (methodName) {
             case "addplace":
@@ -369,34 +479,43 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
                     }
                 }
                 places.add(newPlace);
-                System.out.println("\n\nNew Place Added: " + newPlace.getLocality() + " : " + newPlace.getPostalCode() + "\nPlacemanager: " + placeMngrID);
+                aLogger.newEntry(newPlace.getPostalCode(), newPlace.getLocality(), "addplace");
+                //System.out.println("\n\nNew Place Added: " + newPlace.getLocality() + " : " + newPlace.getPostalCode() + "\nPlacemanager: " + placeMngrID);
                 break;
             case "removeplace":
-                ArrayList<Place> placesAux = new ArrayList<>(places);
+                CopyOnWriteArrayList<Place> placesAux = new CopyOnWriteArrayList<>(places);
                 for (Place place : placesAux) {
                     if (place.getPostalCode().equals(hashParams.get("postalcode"))) {
                         placesAux.remove(place);
                         places.clear();
                         places.addAll(placesAux);
-                        System.out.println("\n\nPlace removed: " + hashParams.get("postalcode"));
+                        aLogger.newEntry(place.getPostalCode(), place.getLocality(), "removeplace");
+                        //System.out.println("\n\nPlace removed: " + hashParams.get("postalcode"));
                     }
                 }
                 break;
             case "setallplaces":
-                places.clear();
-                for (String postCode : hashParams.keySet()) {
-                    newPlace = new Place(postCode, hashParams.get(postCode));
-                    places.add(newPlace);
-                }
+                /*if (places.size() == 0) {
+                    for (String postCode : hashParams.keySet()) {
+                        newPlace = new Place(postCode, hashParams.get(postCode));
+                        places.add(newPlace);
+                        aLogger.newEntry(newPlace.getPostalCode(), newPlace.getLocality(), "addplace");
+                    }
+                }*/
                 break;
             default:
                 //code block
         }
     }
 
+    /**
+     * RMI placeManager naming lookup
+     * @param remotePlaceMngrID     Server ID Hash
+     * @return                      RMI address
+     */
     private synchronized PlacesListInterface getPlaceMngrRMI(String remotePlaceMngrID) {
         try {
-            return (PlacesListInterface) Naming.lookup("rmi://localhost:" + sysRMIPort + "/" + remotePlaceMngrID);
+            return (PlacesListInterface) Naming.lookup("rmi://" + sysIPAddr + ":" + sysRMIPort + "/" + remotePlaceMngrID);
         } catch (NotBoundException | MalformedURLException | RemoteException e) {
             e.printStackTrace();
             return null;

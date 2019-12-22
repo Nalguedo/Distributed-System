@@ -7,4 +7,6 @@ public interface PlacesListInterface extends Remote {
     ArrayList<Place> allPlaces() throws RemoteException;
     Place getPlace(String objectID) throws RemoteException;
     boolean removePlace(String objectID) throws RemoteException;
+    ArrayList<String> getALogger() throws RemoteException;
+
 }

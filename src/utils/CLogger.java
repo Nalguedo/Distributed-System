@@ -25,11 +25,12 @@ public class CLogger {
      * @param NomeServer     Server name
      */
     public CLogger(String NomeServer) {
-        this.FilePath = "Logs/" + NomeServer + ".txt";
+
+        this.FilePath = "Logs/Log-" + NomeServer + ".txt";
         CreateLogFile();
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-        String fileline = "------------------------------------------File created at: "+ dateFormat.format(obDate) + " | Server:" + NomeServer + "------------------------------------------"; // Criação da 1 linha do Ficheiro
+        String fileline = "--------------------File created at: "+ dateFormat.format(obDate) + " | Server:" + NomeServer + "-------------------";
 
         try {
             FileStream = new PrintStream(new File(FilePath));
@@ -72,7 +73,7 @@ public class CLogger {
      * @param placeMngrID       Place Manager Id
      * @param placeMngrLeader   Selected Leader
      */
-    public void LeaderSelectionToLog(String placeMngrID,String placeMngrLeader) {
+    public void LeaderSelectionToLog(String placeMngrID, String placeMngrLeader) {
         Date obDate = new Date();
         dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
         String Type= "| Type:Leader Selection";
@@ -99,6 +100,24 @@ public class CLogger {
         valueForFirstKey = rightPadding(valueForFirstKey,65);
         String fileline = "|"+ dateFormat.format(obDate) + Type + "| " + valueForFirstKey + " |";
         WriteToLog(fileline);
+    }
+
+    /**
+     * Add Log Entry operation
+     * @param postalCode    Postal Code
+     * @param locality      Locality
+     * @param operation     Operation type
+     * @param registryHash  Entry Hash
+     */
+    public void newLogEntry(String postalCode, String locality, String operation, String registryHash) {
+        Date obDate = new Date();
+        dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        String Type= "| Operation: " + operation;
+        Type=  rightPadding(Type, 25);
+        String details = rightPadding("Postal Code: " + postalCode + " Locality: " + locality,40);
+        String details1 = rightPadding(" OpID: " + registryHash,70);
+        String fileLine = "|"+ dateFormat.format(obDate) + Type + "| " + details +" |" + details1 +" |";
+        WriteToLog(fileLine);
     }
 
     /**

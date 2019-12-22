@@ -1,8 +1,10 @@
 package utils;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
 import java.util.HashMap;
 
 /**
@@ -14,13 +16,10 @@ public class Utils {
     /**
      * Create unique server id hash using given params and instant milli
      *
-     * @param placeMngrPort Port number
-     * @param threadID      Server main thread id
+     * @param stringToHash      String to hash
      * @return String           Hash ID using digest "SHA-256"
      */
-    public static String hashString(Integer placeMngrPort, Thread threadID) {
-        Instant instant = Instant.now();
-        String _id = String.valueOf(placeMngrPort) + threadID + instant.toEpochMilli();
+    public static String hashString(String stringToHash) {
         MessageDigest md = null;
         try {
             md = MessageDigest.getInstance("SHA-256");
@@ -28,7 +27,7 @@ public class Utils {
             e.printStackTrace();
         }
         assert md != null;
-        md.update(_id.getBytes());
+        md.update(stringToHash.getBytes());
         byte[] digest = md.digest();
 
         //Converting the byte array in to HexString format
@@ -89,4 +88,30 @@ public class Utils {
         return String.format("%1$-" + num + "s", str);
     }
 
+    /**
+     *
+     * Get ip address which is used to connect to internet
+     *
+     * @return      String corresponding to machine IP address removing "/" char
+     */
+    public static String getIpAddress() {
+        Socket socket = new Socket();
+        String ipAddr = null;
+        try {
+            socket.connect(new InetSocketAddress("google.com", 80));
+            ipAddr = socket.getLocalAddress().toString().replace("/", "");
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ipAddr;
+    }
+
+    /**
+     * Get current project directory
+     * @return      Path String
+     */
+    public static String CurrDirectory() {
+        return System.getProperty("user.dir");
+    }
 }

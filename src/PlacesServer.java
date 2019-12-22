@@ -6,6 +6,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.net.InetAddress;
+import java.time.Instant;
 
 public class PlacesServer {
 
@@ -14,14 +15,17 @@ public class PlacesServer {
         PlacesManager placeList;
         String placeMngrID;
         Thread threadID = Thread.currentThread();
+        String ipAddress = Utils.getIpAddress();
+        System.setProperty("java.rmi.server.hostname", ipAddress);
 
         try{
-            InetAddress address = InetAddress.getByName("230.0.0.0");
+            InetAddress multicastAddress = InetAddress.getByName("230.0.0.0");
             int multicastPort = 6789;
             int RMIPortSystem = 3000;
-            placeMngrID = Utils.hashString(multicastPort, threadID).trim();
+            Instant instant = Instant.now();
+            placeMngrID = Utils.hashString(String.valueOf(multicastPort) + threadID + instant.toEpochMilli()).trim();
             CLogger LogFile= new CLogger(placeMngrID);
-            placeList = new PlacesManager(address, multicastPort, RMIPortSystem, placeMngrID,LogFile);
+            placeList = new PlacesManager(ipAddress, multicastAddress, multicastPort, RMIPortSystem, placeMngrID,LogFile);
 
             //Join RMI system registry using same port and unique id
             sysRegistry = LocateRegistry.getRegistry(RMIPortSystem);
