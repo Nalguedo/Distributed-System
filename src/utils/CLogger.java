@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -25,6 +26,7 @@ public class CLogger {
      * @param NomeServer     Server name
      */
     public CLogger(String NomeServer) {
+
         this.FilePath = "Logs/Log-" + NomeServer + ".txt";
         CreateLogFile();
         Date obDate = new Date();

@@ -1,6 +1,7 @@
+import utils.Utils;
+
 import java.io.File;
 import java.util.Arrays;
-import java.util.Objects;
 
 /**
  * Initialize Frontend server and x PlaceManager instances
@@ -11,8 +12,23 @@ import java.util.Objects;
 public class Initializer {
     public static void main (String[] args) {
 
+        //Test Print current project directory
+        System.out.println(Utils.CurrDirectory());
         //Clear old log files
-        Arrays.stream(Objects.requireNonNull(new File("Logs/").listFiles())).forEach(File::delete);
+        File path = new File(Utils.CurrDirectory() + "/Logs/");
+        try {
+            Arrays.stream(path.listFiles()).forEach(File::delete);
+        } catch (NullPointerException e) {
+            //e.printStackTrace();
+            if (new File("Logs").mkdirs()) {
+                System.out.println("First run...\nLogs directory created!");
+            }
+            else {
+                //File error exit
+                System.out.println("System error... check filesystem permissions");
+                return;
+            }
+        }
 
         Thread t = (new Thread(() -> {
             try {

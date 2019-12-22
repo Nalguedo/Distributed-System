@@ -106,4 +106,9 @@ public class Utils {
         }
         return ipAddr;
     }
+
+    public static String CurrDirectory() {
+
+        return System.getProperty("user.dir");
+    }
 }
