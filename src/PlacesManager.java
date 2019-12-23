@@ -88,6 +88,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
             multicastSocket = new MulticastSocket(multicastPort);
             //join the group in the specified address
             multicastSocket.joinGroup(mcastAddr);
+            multicastSocket.setReuseAddress(true);
             //create a new datagram packet
             DatagramPacket msg = new DatagramPacket(strHello.getBytes(), strHello.getBytes().length, mcastAddr, multicastPort);
             try {
@@ -366,7 +367,7 @@ public class PlacesManager extends UnicastRemoteObject implements PlacesListInte
     }
 
     @Override
-    public ArrayList<String> getALogger() throws RemoteException {
+    public ArrayList<String> getALogger() {
         return aLogger.getALogger();
     }
 
