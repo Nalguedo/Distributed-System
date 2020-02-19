@@ -7,3 +7,7 @@ Leader Election
 Frontend
 Client
 
+Instructions
+- Start initializer
+- Start Client
+- Test
