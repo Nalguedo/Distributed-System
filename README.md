@@ -1,2 +1,9 @@
 # SD2019TF
-Trabalho Final - SD 2019
+Distrubuted Systems
+
+Place object share Distribute System based on RMI and Multicast
+
+Leader Election
+Frontend
+Client
+
