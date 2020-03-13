@@ -1,5 +1,5 @@
 # SD2019TF
-Distrubuted Systems
+Distributed Systems
 
 Place object share Distribute System based on RMI and Multicast
 
