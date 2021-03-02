@@ -12,3 +12,4 @@ Instructions
 - Start Client
 - Test
 
+![alt text](https://github.com/Nalguedo/Distributed-System/dev/diagrama.jpg?raw=true)
